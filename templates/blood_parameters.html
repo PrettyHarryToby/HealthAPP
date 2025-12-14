@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Blood Parameters - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-info">
+    <h2>{{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_id }})</h2>
+    <p><strong>Date of Birth:</strong> {{ patient.date_of_birth }}</p>
+    <div style="margin-top: 10px;">
+        <a href="{{ url_for('vitamin_levels', patient_id=patient.id) }}" class="btn" style="background: #ffc107; color: #000;">Vitamins</a>
+        <a href="{{ url_for('reproductive_health', patient_id=patient.id) }}" class="btn" style="background: #17a2b8;">Reproductive</a>
+        <a href="{{ url_for('gynecological_risk', patient_id=patient.id) }}" class="btn" style="background: #e91e63;">Gyn Risk</a>
+        <a href="{{ url_for('medications', patient_id=patient.id) }}" class="btn" style="background: #6c757d;">Medications</a>
+        <a href="{{ url_for('genetic_data', patient_id=patient.id) }}" class="btn" style="background: #6610f2;">Genetic</a>
+        <a href="{{ url_for('insights', patient_id=patient.id) }}" class="btn btn-success">Insights</a>
+    </div>
+</div>
+
+<h3>Add Blood Test Results</h3>
+<form method="POST" style="margin-bottom: 30px;">
+    <div class="form-group">
+        <label for="test_date">Test Date (YYYY-MM-DD)</label>
+        <input type="date" id="test_date" name="test_date" value="{{ today.isoformat() }}" required>
+    </div>
+    
+    <div class="card">
+        <h3>Complete Blood Count (CBC)</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Hemoglobin (g/dL)</label>
+                <input type="number" step="0.1" name="hemoglobin">
+            </div>
+            <div class="form-group">
+                <label>Hematocrit (%)</label>
+                <input type="number" step="0.1" name="hematocrit">
+            </div>
+            <div class="form-group">
+                <label>White Blood Cells (cells/μL)</label>
+                <input type="number" step="0.01" name="white_blood_cells">
+            </div>
+            <div class="form-group">
+                <label>Red Blood Cells (cells/μL)</label>
+                <input type="number" step="0.01" name="red_blood_cells">
+            </div>
+            <div class="form-group">
+                <label>Platelets (cells/μL)</label>
+                <input type="number" step="0.01" name="platelets">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Metabolic Panel</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Glucose (mg/dL)</label>
+                <input type="number" step="0.1" name="glucose">
+            </div>
+            <div class="form-group">
+                <label>Creatinine (mg/dL)</label>
+                <input type="number" step="0.01" name="creatinine">
+            </div>
+            <div class="form-group">
+                <label>BUN (mg/dL)</label>
+                <input type="number" step="0.1" name="bun">
+            </div>
+            <div class="form-group">
+                <label>ALT (U/L)</label>
+                <input type="number" step="0.1" name="alt">
+            </div>
+            <div class="form-group">
+                <label>AST (U/L)</label>
+                <input type="number" step="0.1" name="ast">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Lipid Panel</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Total Cholesterol (mg/dL)</label>
+                <input type="number" step="0.1" name="total_cholesterol">
+            </div>
+            <div class="form-group">
+                <label>HDL Cholesterol (mg/dL)</label>
+                <input type="number" step="0.1" name="hdl_cholesterol">
+            </div>
+            <div class="form-group">
+                <label>LDL Cholesterol (mg/dL)</label>
+                <input type="number" step="0.1" name="ldl_cholesterol">
+            </div>
+            <div class="form-group">
+                <label>Triglycerides (mg/dL)</label>
+                <input type="number" step="0.1" name="triglycerides">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Thyroid Function</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>TSH (mIU/L)</label>
+                <input type="number" step="0.01" name="tsh">
+            </div>
+            <div class="form-group">
+                <label>T3 (ng/dL)</label>
+                <input type="number" step="0.1" name="t3">
+            </div>
+            <div class="form-group">
+                <label>T4 (μg/dL)</label>
+                <input type="number" step="0.1" name="t4">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Iron Studies</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Ferritin (ng/mL)</label>
+                <input type="number" step="0.1" name="ferritin">
+            </div>
+            <div class="form-group">
+                <label>Iron (μg/dL)</label>
+                <input type="number" step="0.1" name="iron">
+            </div>
+            <div class="form-group">
+                <label>Transferrin (mg/dL)</label>
+                <input type="number" step="0.1" name="transferrin">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Protein Levels</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Total Protein (g/dL)</label>
+                <input type="number" step="0.1" name="total_protein">
+            </div>
+            <div class="form-group">
+                <label>Albumin (g/dL)</label>
+                <input type="number" step="0.1" name="albumin">
+            </div>
+            <div class="form-group">
+                <label>Globulin (g/dL)</label>
+                <input type="number" step="0.1" name="globulin">
+            </div>
+            <div class="form-group">
+                <label>A/G Ratio</label>
+                <input type="number" step="0.01" name="a_g_ratio">
+            </div>
+            <div class="form-group">
+                <label>C-Reactive Protein (mg/L)</label>
+                <input type="number" step="0.1" name="c_reactive_protein">
+            </div>
+            <div class="form-group">
+                <label>Hemoglobin A1c (%)</label>
+                <input type="number" step="0.1" name="hemoglobin_a1c">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes"></textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save Blood Parameters</button>
+</form>
+
+{% if records %}
+<h3>Previous Blood Test Results</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Test Date</th>
+            <th>Hemoglobin</th>
+            <th>Hematocrit</th>
+            <th>Glucose</th>
+            <th>Cholesterol</th>
+            <th>TSH</th>
+            <th>Ferritin</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records %}
+        <tr>
+            <td>{{ record.test_date }}</td>
+            <td>{{ record.hemoglobin or '-' }}</td>
+            <td>{{ record.hematocrit or '-' }}</td>
+            <td>{{ record.glucose or '-' }}</td>
+            <td>{{ record.total_cholesterol or '-' }}</td>
+            <td>{{ record.tsh or '-' }}</td>
+            <td>{{ record.ferritin or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Health Database{% endblock %}
+
+{% block content %}
+<div class="dashboard-section">
+    <h1 class="dashboard-section-title">
+        <i class="fas fa-chart-line"></i>
+        Dashboard Overview
+    </h1>
+    
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Total Patients</div>
+                    <div class="stat-card-value">{{ total_patients }}</div>
+                    <div class="stat-card-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        All registered patients
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Needs Attention</div>
+                    <div class="stat-card-value">{{ patients_needing_attention }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Patients with deficiencies
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card success">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Active Medications</div>
+                    <div class="stat-card-value">{{ active_medications }}</div>
+                    <div class="stat-card-change positive">
+                        <i class="fas fa-pills"></i>
+                        Currently prescribed
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-prescription-bottle"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Genetic Tests</div>
+                    <div class="stat-card-value">{{ genetic_tests }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-dna"></i>
+                        Total tests performed
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-flask"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="stat-card success">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Recent Vitamin Tests</div>
+                    <div class="stat-card-value">{{ recent_vitamin_tests }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-calendar-week"></i>
+                        Last 7 days
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-vial"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Recent Blood Tests</div>
+                    <div class="stat-card-value">{{ recent_blood_tests }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-calendar-week"></i>
+                        Last 7 days
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-tint"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Health Profiling Statistics -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 24px;">
+        <div class="stat-card danger">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Protein Level Issues</div>
+                    <div class="stat-card-value">{{ patients_with_protein_issues_count }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Patients with abnormal levels
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-flask"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Inactive Medications</div>
+                    <div class="stat-card-value">{{ total_inactive_medications }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-pills"></i>
+                        Discontinued/Inactive
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-ban"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card danger">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-title">Gynecological Risks</div>
+                    <div class="stat-card-value">{{ patients_with_gyn_risk_count }}</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Patients with risk indicators
+                    </div>
+                </div>
+                <div class="stat-card-icon">
+                    <i class="fas fa-female"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Patients with Protein Level Issues -->
+{% if patients_with_protein_issues %}
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">
+        <i class="fas fa-flask"></i>
+        Patients with Protein Level Issues
+    </h2>
+    
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Test Date</th>
+                    <th>Abnormal Values</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in patients_with_protein_issues %}
+                <tr>
+                    <td>
+                        <strong>{{ item.patient.patient_id }}</strong><br>
+                        <small style="color: #6b7280;">{{ item.patient.first_name }} {{ item.patient.last_name }}</small>
+                    </td>
+                    <td>{{ item.test_date }}</td>
+                    <td>
+                        {% for issue in item.issues %}
+                            <span class="badge badge-danger" style="display: inline-block; margin: 2px;">{{ issue }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('blood_parameters', patient_id=item.patient.id) }}" class="btn btn-sm">
+                            <i class="fas fa-tint"></i> View Blood Tests
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Patients with Inactive/Discontinued Medications -->
+{% if patients_with_inactive_meds %}
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">
+        <i class="fas fa-pills"></i>
+        Patients with Inactive/Discontinued Medications
+    </h2>
+    
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Inactive Medications</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in patients_with_inactive_meds %}
+                <tr>
+                    <td>
+                        <strong>{{ item.patient.patient_id }}</strong><br>
+                        <small style="color: #6b7280;">{{ item.patient.first_name }} {{ item.patient.last_name }}</small>
+                    </td>
+                    <td>
+                        {% for med in item.medications[:3] %}
+                            <div style="margin: 4px 0;">
+                                <strong>{{ med.medication_name }}</strong>
+                                {% if med.status %}
+                                    <span class="badge badge-warning">{{ med.status }}</span>
+                                {% endif %}
+                                {% if med.discontinuation_reason %}
+                                    <br><small style="color: #6b7280;">Reason: {{ med.discontinuation_reason }}</small>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        {% if item.count > 3 %}
+                            <small style="color: #6b7280;">+ {{ item.count - 3 }} more</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-warning">{{ item.count }} inactive</span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('medications', patient_id=item.patient.id) }}" class="btn btn-sm">
+                            <i class="fas fa-pills"></i> View Medications
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Patients with Gynecological Risk Indicators -->
+{% if patients_with_gyn_risks %}
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">
+        <i class="fas fa-female"></i>
+        Patients with Gynecological Risk Indicators
+    </h2>
+    
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Risk Level</th>
+                    <th>Risk Factors</th>
+                    <th>Last Assessment</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in patients_with_gyn_risks %}
+                <tr>
+                    <td>
+                        <strong>{{ item.patient.patient_id }}</strong><br>
+                        <small style="color: #6b7280;">{{ item.patient.first_name }} {{ item.patient.last_name }}</small>
+                    </td>
+                    <td>
+                        {% if item.risk_level == 'High' or item.risk_level == 'Very High' %}
+                            <span class="badge badge-danger">{{ item.risk_level }}</span>
+                        {% elif item.risk_level == 'Moderate' %}
+                            <span class="badge badge-warning">{{ item.risk_level }}</span>
+                        {% else %}
+                            <span class="badge badge-info">{{ item.risk_level }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for factor in item.risk_factors[:3] %}
+                            <span class="badge badge-danger" style="display: inline-block; margin: 2px;">{{ factor }}</span>
+                        {% endfor %}
+                        {% if item.risk_factors|length > 3 %}
+                            <small style="color: #6b7280;">+ {{ item.risk_factors|length - 3 }} more</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.record_date }}</td>
+                    <td>
+                        <a href="{{ url_for('gynecological_risk', patient_id=item.patient.id) }}" class="btn btn-sm" style="background: #e91e63; color: white;">
+                            <i class="fas fa-female"></i> View Risk Assessment
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Patients -->
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">
+        <i class="fas fa-user-plus"></i>
+        Recent Patients
+    </h2>
+    
+    {% if recent_patients %}
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Name</th>
+                    <th>Date of Birth</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in recent_patients %}
+                <tr>
+                    <td><strong>{{ patient.patient_id }}</strong></td>
+                    <td>{{ patient.first_name }} {{ patient.last_name }}</td>
+                    <td>{{ patient.date_of_birth }}</td>
+                    <td>{{ patient.email or '-' }}</td>
+                    <td>{{ patient.phone or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('vitamin_levels', patient_id=patient.id) }}" class="btn btn-sm" style="background: #f59e0b; color: white;">
+                            <i class="fas fa-vial"></i> Vitamins
+                        </a>
+                        <a href="{{ url_for('insights', patient_id=patient.id) }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-chart-bar"></i> Insights
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <h3>No Patients Yet</h3>
+            <p>Get started by adding your first patient</p>
+            <a href="{{ url_for('add_patient') }}" class="btn" style="margin-top: 20px;">
+                <i class="fas fa-plus"></i> Add Patient
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Patients with Recent Test Data -->
+{% if patients_with_recent_tests %}
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">
+        <i class="fas fa-clipboard-list"></i>
+        Patients with Recent Test Data
+    </h2>
+    
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Last Vitamin Test</th>
+                    <th>Last Blood Test</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in patients_with_recent_tests %}
+                <tr>
+                    <td>
+                        <strong>{{ item.patient.patient_id }}</strong><br>
+                        <small style="color: #6b7280;">{{ item.patient.first_name }} {{ item.patient.last_name }}</small>
+                    </td>
+                    <td>
+                        {% if item.last_vitamin_test %}
+                            <span class="badge badge-success">{{ item.last_vitamin_test }}</span>
+                        {% else %}
+                            <span class="badge badge-warning">No test</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.last_blood_test %}
+                            <span class="badge badge-success">{{ item.last_blood_test }}</span>
+                        {% else %}
+                            <span class="badge badge-warning">No test</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-info">Active</span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('insights', patient_id=item.patient.id) }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-chart-bar"></i> View Insights
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="dashboard-section">
+    <h2 class="dashboard-section-title">
+        <i class="fas fa-bolt"></i>
+        Quick Actions
+    </h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <a href="{{ url_for('add_patient') }}" class="card" style="text-decoration: none; text-align: center; padding: 32px;">
+            <i class="fas fa-user-plus" style="font-size: 48px; color: var(--primary-color); margin-bottom: 16px;"></i>
+            <h3 style="color: var(--text-primary); margin: 0;">Add Patient</h3>
+        </a>
+        
+        <a href="{{ url_for('patients') }}" class="card" style="text-decoration: none; text-align: center; padding: 32px;">
+            <i class="fas fa-users" style="font-size: 48px; color: var(--info-color); margin-bottom: 16px;"></i>
+            <h3 style="color: var(--text-primary); margin: 0;">View All Patients</h3>
+        </a>
+        
+        {% if patients_needing_attention > 0 %}
+        <div class="card" style="text-align: center; padding: 32px; border-left-color: var(--warning-color);">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning-color); margin-bottom: 16px;"></i>
+            <h3 style="color: var(--text-primary); margin: 0;">{{ patients_needing_attention }} Need Attention</h3>
+            <p style="color: var(--text-secondary); margin-top: 8px; font-size: 14px;">Review patient insights</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

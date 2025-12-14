@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{% if patient %}Edit{% else %}Add{% endif %} Patient - Health Database{% endblock %}
+
+{% block content %}
+<h2>{% if patient %}Edit{% else %}Add New{% endif %} Patient</h2>
+
+<form method="POST" style="max-width: 800px;">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="patient_id">Patient ID *</label>
+            <input type="text" id="patient_id" name="patient_id" value="{{ patient.patient_id if patient else '' }}" required {% if patient %}readonly{% endif %}>
+        </div>
+        
+        <div class="form-group">
+            <label for="date_of_birth">Date of Birth * (YYYY-MM-DD)</label>
+            <input type="date" id="date_of_birth" name="date_of_birth" value="{{ patient.date_of_birth if patient else '' }}" required>
+        </div>
+    </div>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label for="first_name">First Name *</label>
+            <input type="text" id="first_name" name="first_name" value="{{ patient.first_name if patient else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="last_name">Last Name *</label>
+            <input type="text" id="last_name" name="last_name" value="{{ patient.last_name if patient else '' }}" required>
+        </div>
+    </div>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="{{ patient.email if patient else '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" name="phone" value="{{ patient.phone if patient else '' }}">
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="address">Address</label>
+        <textarea id="address" name="address">{{ patient.address if patient else '' }}</textarea>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <button type="submit" class="btn btn-success">{% if patient %}Update{% else %}Add{% endif %} Patient</button>
+        <a href="{{ url_for('patients') }}" class="btn" style="background: #6c757d;">Cancel</a>
+    </div>
+</form>
+{% endblock %}
+

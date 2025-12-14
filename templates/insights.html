@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Health Insights - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-info">
+    <h2>{{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_id }})</h2>
+    <div style="margin-top: 10px;">
+        <a href="{{ url_for('vitamin_levels', patient_id=patient.id) }}" class="btn" style="background: #ffc107; color: #000;">Vitamins</a>
+        <a href="{{ url_for('blood_parameters', patient_id=patient.id) }}" class="btn">Blood</a>
+        <a href="{{ url_for('genetic_data', patient_id=patient.id) }}" class="btn" style="background: #6610f2;">Genetic</a>
+    </div>
+</div>
+
+<h2>Health Insights & Recommendations</h2>
+
+<div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6;">
+{% if insights.vitamin_analysis and insights.vitamin_analysis.has_data %}
+<h3 style="color: #667eea; margin-top: 0;">VITAMIN LEVEL ANALYSIS</h3>
+<p><strong>Total Records Analyzed:</strong> {{ insights.vitamin_analysis.total_records }}</p>
+
+{% if insights.vitamin_analysis.deficiencies %}
+<h4 style="color: #dc3545; margin-top: 15px;">DEFICIENCIES DETECTED:</h4>
+{% for def_item in insights.vitamin_analysis.deficiencies %}
+  • {{ def_item.vitamin }}: {{ def_item.value }} {{ def_item.unit }} (Reference: {{ def_item.reference_low }}+ {{ def_item.unit }}) [{{ def_item.deficiency_percent }}% below normal]
+    Date: {{ def_item.date }}
+{% endfor %}
+{% endif %}
+
+{% if insights.vitamin_analysis.excesses %}
+<h4 style="color: #ffc107; margin-top: 15px;">ELEVATED LEVELS DETECTED:</h4>
+{% for exc_item in insights.vitamin_analysis.excesses %}
+  • {{ exc_item.vitamin }}: {{ exc_item.value }} {{ exc_item.unit }} (Reference: <{{ exc_item.reference_high }} {{ exc_item.unit }}) [{{ exc_item.excess_percent }}% above normal]
+    Date: {{ exc_item.date }}
+{% endfor %}
+{% endif %}
+
+{% if insights.vitamin_analysis.trends %}
+<h4 style="color: #17a2b8; margin-top: 15px;">VITAMIN TRENDS:</h4>
+{% for vitamin, trend_data in insights.vitamin_analysis.trends.items() %}
+  • {{ vitamin.replace('_', ' ').title() }}: {{ trend_data.status }} ({{ trend_data.trend }}) - Latest: {{ trend_data.latest_value }} on {{ trend_data.latest_date }}
+{% endfor %}
+{% endif %}
+
+{% else %}
+<p><em>No vitamin level data available</em></p>
+{% endif %}
+
+{% if insights.micronutrient_analysis and insights.micronutrient_analysis.has_data %}
+<h3 style="color: #667eea; margin-top: 30px;">MICRONUTRIENT LEVEL ANALYSIS</h3>
+<p><strong>Total Records Analyzed:</strong> {{ insights.micronutrient_analysis.total_records }}</p>
+
+{% if insights.micronutrient_analysis.deficiencies %}
+<h4 style="color: #dc3545; margin-top: 15px;">DEFICIENCIES DETECTED:</h4>
+{% for def_item in insights.micronutrient_analysis.deficiencies %}
+  • {{ def_item.micronutrient }}: {{ def_item.value }} {{ def_item.unit }} (Reference: {{ def_item.reference_low }}+ {{ def_item.unit }})
+    Date: {{ def_item.date }}
+{% endfor %}
+{% endif %}
+
+{% if insights.micronutrient_analysis.excesses %}
+<h4 style="color: #ffc107; margin-top: 15px;">ELEVATED LEVELS DETECTED:</h4>
+{% for exc_item in insights.micronutrient_analysis.excesses %}
+  • {{ exc_item.micronutrient }}: {{ exc_item.value }} {{ exc_item.unit }} (Reference: <{{ exc_item.reference_high }} {{ exc_item.unit }})
+    Date: {{ exc_item.date }}
+{% endfor %}
+{% endif %}
+
+{% else %}
+<p><em>No micronutrient data available</em></p>
+{% endif %}
+
+{% if insights.genetic_insights %}
+<h3 style="color: #667eea; margin-top: 30px;">GENETIC INSIGHTS</h3>
+{% for genetic_insight in insights.genetic_insights %}
+  • {{ genetic_insight.type }}: {{ genetic_insight.get('variant', '') }}
+    Implication: {{ genetic_insight.implication }}
+    Priority: {{ genetic_insight.priority.upper() }}
+{% endfor %}
+{% else %}
+<p><em>No genetic insights available</em></p>
+{% endif %}
+
+{% if insights.medication_recommendations %}
+<h3 style="color: #667eea; margin-top: 30px;">MEDICATION/SUPPLEMENT RECOMMENDATIONS</h3>
+{% for med_rec in insights.medication_recommendations %}
+  • {{ med_rec.type.upper() }}: {{ med_rec.get('vitamin', 'N/A') }}
+    Reason: {{ med_rec.reason }}
+    Priority: {{ med_rec.priority.upper() }}
+{% endfor %}
+{% else %}
+<p><em>No medication recommendations at this time</em></p>
+{% endif %}
+
+{% if insights.overall_recommendations %}
+<h3 style="color: #667eea; margin-top: 30px;">OVERALL RECOMMENDATIONS</h3>
+{% for rec in insights.overall_recommendations %}
+  [{{ rec.priority.upper() }}] {{ rec.category }}: {{ rec.recommendation }}
+{% endfor %}
+{% endif %}
+
+<p style="margin-top: 30px; color: #6c757d; font-size: 11px;">Report Generated: {{ moment().strftime('%Y-%m-%d %H:%M:%S') }}</p>
+</div>
+{% endblock %}
+

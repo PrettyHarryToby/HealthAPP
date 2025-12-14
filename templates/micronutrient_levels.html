@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Micronutrients - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-info">
+    <h2>{{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_id }})</h2>
+    <div style="margin-top: 10px;">
+        <a href="{{ url_for('vitamin_levels', patient_id=patient.id) }}" class="btn" style="background: #ffc107; color: #000;">Vitamins</a>
+        <a href="{{ url_for('insights', patient_id=patient.id) }}" class="btn btn-success">Insights</a>
+    </div>
+</div>
+
+<h3>Add Micronutrient Level Test Results</h3>
+<form method="POST" style="margin-bottom: 30px;">
+    <div class="form-group">
+        <label for="test_date">Test Date (YYYY-MM-DD)</label>
+        <input type="date" id="test_date" name="test_date" value="{{ today.isoformat() }}" required>
+    </div>
+    
+    <div class="card">
+        <h3>Minerals</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Calcium (mg/dL)</label>
+                <input type="number" step="0.1" name="calcium">
+            </div>
+            <div class="form-group">
+                <label>Magnesium (mg/dL)</label>
+                <input type="number" step="0.1" name="magnesium">
+            </div>
+            <div class="form-group">
+                <label>Phosphorus (mg/dL)</label>
+                <input type="number" step="0.1" name="phosphorus">
+            </div>
+            <div class="form-group">
+                <label>Potassium (mEq/L)</label>
+                <input type="number" step="0.1" name="potassium">
+            </div>
+            <div class="form-group">
+                <label>Sodium (mEq/L)</label>
+                <input type="number" step="0.1" name="sodium">
+            </div>
+            <div class="form-group">
+                <label>Zinc (μg/dL)</label>
+                <input type="number" step="0.1" name="zinc">
+            </div>
+            <div class="form-group">
+                <label>Selenium (μg/L)</label>
+                <input type="number" step="0.1" name="selenium">
+            </div>
+            <div class="form-group">
+                <label>Copper (μg/dL)</label>
+                <input type="number" step="0.1" name="copper">
+            </div>
+            <div class="form-group">
+                <label>Manganese (μg/L)</label>
+                <input type="number" step="0.1" name="manganese">
+            </div>
+            <div class="form-group">
+                <label>Chromium (μg/L)</label>
+                <input type="number" step="0.01" name="chromium">
+            </div>
+            <div class="form-group">
+                <label>Molybdenum (μg/L)</label>
+                <input type="number" step="0.1" name="molybdenum">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Other Micronutrients</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Omega-3 (mg/dL)</label>
+                <input type="number" step="0.1" name="omega_3">
+            </div>
+            <div class="form-group">
+                <label>Omega-6 (mg/dL)</label>
+                <input type="number" step="0.1" name="omega_6">
+            </div>
+            <div class="form-group">
+                <label>Coenzyme Q10 (μg/mL)</label>
+                <input type="number" step="0.1" name="coenzyme_q10">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes"></textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save Micronutrient Levels</button>
+</form>
+
+{% if records %}
+<h3>Previous Micronutrient Tests</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Test Date</th>
+            <th>Calcium</th>
+            <th>Magnesium</th>
+            <th>Zinc</th>
+            <th>Omega-3</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records %}
+        <tr>
+            <td>{{ record.test_date }}</td>
+            <td>{{ record.calcium or '-' }}</td>
+            <td>{{ record.magnesium or '-' }}</td>
+            <td>{{ record.zinc or '-' }}</td>
+            <td>{{ record.omega_3 or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Gynecological Risk Indicators - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-info">
+    <h2>{{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_id }})</h2>
+    <div style="margin-top: 10px;">
+        <a href="{{ url_for('reproductive_health', patient_id=patient.id) }}" class="btn" style="background: #17a2b8;">Reproductive Health</a>
+        <a href="{{ url_for('insights', patient_id=patient.id) }}" class="btn btn-success">Insights</a>
+    </div>
+</div>
+
+<h3>Add Gynecological Risk Assessment</h3>
+<form method="POST" style="margin-bottom: 30px;">
+    <div class="form-group">
+        <label for="record_date">Record Date (YYYY-MM-DD)</label>
+        <input type="date" id="record_date" name="record_date" value="{{ today.isoformat() }}" required>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-users"></i> Family History</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="family_history_ovarian_cancer"> Ovarian Cancer
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="family_history_breast_cancer"> Breast Cancer
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="family_history_cervical_cancer"> Cervical Cancer
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="family_history_endometrial_cancer"> Endometrial Cancer
+            </label>
+        </div>
+        <div class="form-group">
+            <label for="family_history_details">Family History Details</label>
+            <textarea id="family_history_details" name="family_history_details" rows="3" placeholder="Details about affected relatives, ages, etc."></textarea>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-user-md"></i> Personal History</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="personal_history_breast_cancer"> Breast Cancer
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="personal_history_ovarian_cancer"> Ovarian Cancer
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="personal_history_cervical_cancer"> Cervical Cancer
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="personal_history_endometrial_cancer"> Endometrial Cancer
+            </label>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-baby"></i> Reproductive Risk Factors</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Age at Menarche (years)</label>
+                <input type="number" name="age_at_menarche" min="8" max="20">
+            </div>
+            <div class="form-group">
+                <label>Age at Menopause (years)</label>
+                <input type="number" name="age_at_menopause" min="30" max="65">
+            </div>
+            <div class="form-group">
+                <label>Number of Pregnancies</label>
+                <input type="number" name="number_of_pregnancies" min="0">
+            </div>
+            <div class="form-group">
+                <label>First Pregnancy Age (years)</label>
+                <input type="number" name="first_pregnancy_age" min="10" max="50">
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="nulliparity"> Nulliparity (Never given birth)
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="breastfeeding_history"> Breastfeeding History
+            </label>
+        </div>
+        <div class="form-group" style="margin-top: 15px;">
+            <label>Breastfeeding Duration (months)</label>
+            <input type="number" name="breastfeeding_duration_months" min="0" step="0.5">
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-pills"></i> Hormonal Factors</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="hormone_replacement_therapy"> Hormone Replacement Therapy
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="oral_contraceptive_use"> Oral Contraceptive Use
+            </label>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>HRT Duration (years)</label>
+                <input type="number" name="hrt_duration_years" min="0" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>OC Duration (years)</label>
+                <input type="number" name="oc_duration_years" min="0" step="0.1">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-running"></i> Lifestyle Risk Factors</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>BMI</label>
+                <input type="number" name="bmi" min="10" max="60" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Physical Activity Level</label>
+                <select name="physical_activity_level">
+                    <option value="">Select...</option>
+                    <option value="Sedentary">Sedentary</option>
+                    <option value="Light">Light</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Active">Active</option>
+                    <option value="Very Active">Very Active</option>
+                </select>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="smoking_history"> Smoking History
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="diabetes"> Diabetes
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="hypertension"> Hypertension
+            </label>
+        </div>
+        <div class="form-row" style="margin-top: 15px;">
+            <div class="form-group">
+                <label>Smoking Pack Years</label>
+                <input type="number" name="smoking_pack_years" min="0" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Alcohol Consumption (drinks/week)</label>
+                <input type="number" name="alcohol_consumption_weekly" min="0" step="0.1">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Autoimmune Diseases</label>
+            <input type="text" name="autoimmune_diseases" placeholder="e.g., Lupus, Rheumatoid Arthritis">
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-procedures"></i> Previous Procedures</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="previous_gynecological_surgery"> Previous Gynecological Surgery
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="abnormal_pap_smear_history"> Abnormal Pap Smear History
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="cervical_dysplasia_history"> Cervical Dysplasia History
+            </label>
+        </div>
+        <div class="form-group">
+            <label>Gynecological Surgery Type</label>
+            <input type="text" name="gynecological_surgery_type" placeholder="e.g., Hysterectomy, Oophorectomy">
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-flask"></i> Biomarkers & Screening</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>CA-125 Level (U/mL)</label>
+                <input type="number" name="ca125_level" min="0" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>CA-125 Test Date</label>
+                <input type="date" name="ca125_test_date">
+            </div>
+            <div class="form-group">
+                <label>HE4 Level (pmol/L)</label>
+                <input type="number" name="he4_level" min="0" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>HE4 Test Date</label>
+                <input type="date" name="he4_test_date">
+            </div>
+            <div class="form-group">
+                <label>ROMA Index</label>
+                <input type="number" name="roma_index" min="0" max="100" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>ROMA Test Date</label>
+                <input type="date" name="roma_test_date">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-calendar-check"></i> Screening Dates</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Last Mammogram Date</label>
+                <input type="date" name="last_mammogram_date">
+            </div>
+            <div class="form-group">
+                <label>Mammogram Results</label>
+                <select name="mammogram_results">
+                    <option value="">Select...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Abnormal">Abnormal</option>
+                    <option value="Suspicious">Suspicious</option>
+                    <option value="Benign">Benign</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Last Pap Smear Date</label>
+                <input type="date" name="last_pap_smear_date">
+            </div>
+            <div class="form-group">
+                <label>Pap Smear Results</label>
+                <select name="pap_smear_results">
+                    <option value="">Select...</option>
+                    <option value="Normal">Normal</option>
+                    <option value="ASCUS">ASCUS</option>
+                    <option value="LSIL">LSIL</option>
+                    <option value="HSIL">HSIL</option>
+                    <option value="AGC">AGC</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Last Pelvic Ultrasound Date</label>
+                <input type="date" name="last_pelvic_ultrasound_date">
+            </div>
+            <div class="form-group">
+                <label>Next Screening Due Date</label>
+                <input type="date" name="next_screening_due_date">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Pelvic Ultrasound Results</label>
+            <textarea name="pelvic_ultrasound_results" rows="3"></textarea>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-exclamation-triangle"></i> Risk Assessment</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Overall Risk Level</label>
+                <select name="overall_risk_level">
+                    <option value="">Select...</option>
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                    <option value="Very High">Very High</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Risk Factors Summary</label>
+            <textarea name="risk_factors_summary" rows="3" placeholder="Summary of identified risk factors"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Recommended Screening Schedule</label>
+            <textarea name="recommended_screening_schedule" rows="3" placeholder="Recommended screening frequency and tests"></textarea>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="4"></textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save Risk Assessment</button>
+</form>
+
+{% if records %}
+<h3>Previous Risk Assessments</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Risk Level</th>
+            <th>Family History</th>
+            <th>Personal History</th>
+            <th>CA-125</th>
+            <th>Last Screening</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records %}
+        <tr>
+            <td>{{ record.record_date }}</td>
+            <td>
+                {% if record.overall_risk_level == 'High' or record.overall_risk_level == 'Very High' %}
+                    <span class="badge badge-danger">{{ record.overall_risk_level or 'Not Assessed' }}</span>
+                {% elif record.overall_risk_level == 'Moderate' %}
+                    <span class="badge badge-warning">{{ record.overall_risk_level }}</span>
+                {% else %}
+                    <span class="badge badge-success">{{ record.overall_risk_level or 'Not Assessed' }}</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if record.family_history_breast_cancer or record.family_history_ovarian_cancer %}
+                    <span class="badge badge-warning">Yes</span>
+                {% else %}
+                    No
+                {% endif %}
+            </td>
+            <td>
+                {% if record.personal_history_breast_cancer or record.personal_history_ovarian_cancer %}
+                    <span class="badge badge-danger">Yes</span>
+                {% else %}
+                    No
+                {% endif %}
+            </td>
+            <td>{{ record.ca125_level or '-' }}</td>
+            <td>{{ record.last_mammogram_date or record.last_pap_smear_date or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

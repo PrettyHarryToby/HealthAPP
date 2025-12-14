@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Vitamin Levels - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-info">
+    <h2>{{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_id }})</h2>
+    <div style="margin-top: 10px;">
+        <a href="{{ url_for('blood_parameters', patient_id=patient.id) }}" class="btn">Blood</a>
+        <a href="{{ url_for('micronutrient_levels', patient_id=patient.id) }}" class="btn" style="background: #17a2b8;">Micronutrients</a>
+        <a href="{{ url_for('insights', patient_id=patient.id) }}" class="btn btn-success">Insights</a>
+    </div>
+</div>
+
+<h3>Add Vitamin Level Test Results</h3>
+<form method="POST" style="margin-bottom: 30px;">
+    <div class="form-group">
+        <label for="test_date">Test Date (YYYY-MM-DD)</label>
+        <input type="date" id="test_date" name="test_date" value="{{ today.isoformat() }}" required>
+    </div>
+    
+    <div class="card">
+        <h3>Fat-Soluble Vitamins</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Vitamin A (μg/dL)</label>
+                <input type="number" step="0.1" name="vitamin_a">
+            </div>
+            <div class="form-group">
+                <label>Vitamin D (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_d">
+            </div>
+            <div class="form-group">
+                <label>Vitamin E (mg/dL)</label>
+                <input type="number" step="0.1" name="vitamin_e">
+            </div>
+            <div class="form-group">
+                <label>Vitamin K (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_k">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>B-Complex Vitamins</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Vitamin B1 - Thiamine (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b1">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B2 - Riboflavin (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b2">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B3 - Niacin (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b3">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B5 - Pantothenic Acid (μg/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b5">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B6 - Pyridoxine (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b6">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B7 - Biotin (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b7">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B9 - Folate (ng/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b9">
+            </div>
+            <div class="form-group">
+                <label>Vitamin B12 - Cobalamin (pg/mL)</label>
+                <input type="number" step="0.1" name="vitamin_b12">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Water-Soluble Vitamins</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Vitamin C - Ascorbic Acid (mg/dL)</label>
+                <input type="number" step="0.1" name="vitamin_c">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes"></textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save Vitamin Levels</button>
+</form>
+
+{% if records %}
+<h3>Previous Vitamin Level Tests</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Test Date</th>
+            <th>Vitamin D</th>
+            <th>Vitamin B12</th>
+            <th>Folate (B9)</th>
+            <th>Vitamin C</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records %}
+        <tr>
+            <td>{{ record.test_date }}</td>
+            <td>{{ record.vitamin_d or '-' }}</td>
+            <td>{{ record.vitamin_b12 or '-' }}</td>
+            <td>{{ record.vitamin_b9 or '-' }}</td>
+            <td>{{ record.vitamin_c or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+

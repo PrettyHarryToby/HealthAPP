@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Genetic Data - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-info">
+    <h2>{{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_id }})</h2>
+</div>
+
+<h3>Add Genetic Test Results</h3>
+<form method="POST" style="margin-bottom: 30px;">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="test_date">Test Date (YYYY-MM-DD)</label>
+            <input type="date" id="test_date" name="test_date" value="{{ today.isoformat() }}" required>
+        </div>
+        <div class="form-group">
+            <label for="test_type">Test Type</label>
+            <input type="text" id="test_type" name="test_type" placeholder="e.g., MTHFR, BRCA1/2">
+        </div>
+        <div class="form-group">
+            <label for="test_provider">Test Provider</label>
+            <input type="text" id="test_provider" name="test_provider">
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>MTHFR Variants</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="mthfr_c677t">MTHFR C677T</label>
+                <select id="mthfr_c677t" name="mthfr_c677t">
+                    <option value="">Select...</option>
+                    <option value="CC">CC (Normal)</option>
+                    <option value="CT">CT (Heterozygous)</option>
+                    <option value="TT">TT (Homozygous)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="mthfr_a1298c">MTHFR A1298C</label>
+                <select id="mthfr_a1298c" name="mthfr_a1298c">
+                    <option value="">Select...</option>
+                    <option value="AA">AA (Normal)</option>
+                    <option value="AC">AC (Heterozygous)</option>
+                    <option value="CC">CC (Homozygous)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>BRCA Mutations</h3>
+        <div style="margin-top: 10px;">
+            <label style="display: inline-block; margin-right: 20px;">
+                <input type="checkbox" name="brca1_mutation"> BRCA1 Mutation
+            </label>
+            <label style="display: inline-block;">
+                <input type="checkbox" name="brca2_mutation"> BRCA2 Mutation
+            </label>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="raw_data">Raw Genetic Data</label>
+        <textarea id="raw_data" name="raw_data" rows="3"></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="interpretation">Interpretation</label>
+        <textarea id="interpretation" name="interpretation" rows="3"></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="clinical_significance">Clinical Significance</label>
+        <textarea id="clinical_significance" name="clinical_significance" rows="3"></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="recommendations">Recommendations</label>
+        <textarea id="recommendations" name="recommendations" rows="3"></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3"></textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Save Genetic Data</button>
+</form>
+
+{% if records %}
+<h3>Previous Genetic Tests</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Test Date</th>
+            <th>Test Type</th>
+            <th>MTHFR C677T</th>
+            <th>MTHFR A1298C</th>
+            <th>BRCA1</th>
+            <th>BRCA2</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records %}
+        <tr>
+            <td>{{ record.test_date }}</td>
+            <td>{{ record.test_type or '-' }}</td>
+            <td>{{ record.mthfr_c677t or '-' }}</td>
+            <td>{{ record.mthfr_a1298c or '-' }}</td>
+            <td>{% if record.brca1_mutation %}Yes{% else %}No{% endif %}</td>
+            <td>{% if record.brca2_mutation %}Yes{% else %}No{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+
