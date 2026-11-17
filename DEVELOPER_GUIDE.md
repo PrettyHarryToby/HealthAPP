@@ -193,6 +193,7 @@ def lab_results(patient_id):
 #### Step 4: Create Template
 
 Create `templates/lab_results.html`:
+{% raw %}
 ```html
 {% extends "base.html" %}
 
@@ -232,6 +233,7 @@ Create `templates/lab_results.html`:
 {% endif %}
 {% endblock %}
 ```
+{% endraw %}
 
 #### Step 5: Run Migration
 
@@ -357,21 +359,21 @@ except Exception as e:
 ### Manual Testing Steps
 
 1. **Start the server:**
-   ```bash
-   python app_web.py
-   ```
+    ```bash
+    python app_web.py
+    ```
 
 2. **Test the new feature:**
-   - Navigate to the page
-   - Fill out forms
-   - Submit data
-   - Verify data saves
-   - Check database directly if needed
+    - Navigate to the page
+    - Fill out forms
+    - Submit data
+    - Verify data saves
+    - Check database directly if needed
 
 3. **Test error cases:**
-   - Invalid input
-   - Missing required fields
-   - Non-existent patient IDs
+    - Invalid input
+    - Missing required fields
+    - Non-existent patient IDs
 
 ### Database Inspection
 
@@ -467,10 +469,12 @@ engine.echo = True  # Prints all SQL queries
 ### Template Debugging
 
 Use Jinja2 debug:
+{% raw %}
 ```jinja2
 {{ variable|pprint }}  <!-- Pretty print variable -->
 {{ variable|debug }}  <!-- Debug output -->
 ```
+{% endraw %}
 
 ---
 
