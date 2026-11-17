@@ -107,6 +107,14 @@ class AdminAuthTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.data)
 
+    def test_signin_pages_offer_back_to_home(self):
+        for path in ("/login", "/admin/login"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b"Back to home", response.data)
+                self.assertIn(b'href="/"', response.data)
+
     def test_brand_mark_is_served_and_used_as_favicon(self):
         homepage = self.client.get("/")
         favicon = self.client.get("/static/avenara-mark.svg")
