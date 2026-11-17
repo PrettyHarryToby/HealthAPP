@@ -1,4 +1,5 @@
 import os
+import secrets
 import unittest
 from unittest.mock import patch
 
@@ -54,10 +55,12 @@ class AdminAuthTests(unittest.TestCase):
         cls.original_client = database._client
         cls.database_patch = patch.object(database, "mongo_database", cls.fake_database)
         cls.init_patch = patch.object(database, "init_database")
+        cls.test_username = "test-admin"
+        cls.test_password = secrets.token_urlsafe(24)
         cls.database_patch.start()
         cls.init_patch.start()
-        os.environ["ADMIN_USERNAME"] = "test-admin"
-        os.environ["ADMIN_PASSWORD"] = "correct-horse-battery"
+        os.environ["ADMIN_USERNAME"] = cls.test_username
+        os.environ["ADMIN_PASSWORD"] = cls.test_password
         import app_web
         cls.app = app_web.app
         cls.app.config.update(TESTING=True)
@@ -107,13 +110,23 @@ class AdminAuthTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.data)
 
-    def test_signin_pages_offer_back_to_home(self):
-        for path in ("/login", "/admin/login"):
+    def test_standalone_public_pages_offer_back_to_home(self):
+        for path in ("/login", "/admin/login", "/portal/register", "/faq", "/terms", "/privacy"):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(b"Back to home", response.data)
                 self.assertIn(b'href="/"', response.data)
+
+    def test_authenticated_pages_offer_return_to_workspace(self):
+        with self.client.session_transaction() as browser_session:
+            browser_session["admin_authenticated"] = True
+
+        response = self.client.get("/admin")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Back to overview", response.data)
+        self.assertIn(b'href="/dashboard"', response.data)
 
     def test_brand_mark_is_served_and_used_as_favicon(self):
         homepage = self.client.get("/")
@@ -145,8 +158,8 @@ class AdminAuthTests(unittest.TestCase):
             "/admin/login",
             data={
                 "csrf_token": token,
-                "username": "test-admin",
-                "password": "correct-horse-battery",
+                "username": self.test_username,
+                "password": self.test_password,
             },
         )
 
@@ -157,27 +170,9 @@ class AdminAuthTests(unittest.TestCase):
         admin_response = self.client.get("/admin")
         self.assertEqual(admin_response.status_code, 200)
         self.assertIn(b"System console", admin_response.data)
-        self.assertEqual(len(self.fake_database["admin_events"].documents), 1)
-
-    def test_admin_credentials_record_and_display_login_event(self):
-        self.client.get("/admin/login")
-        with self.client.session_transaction() as browser_session:
-            token = browser_session["csrf_token"]
-
-        with patch.dict(os.environ, {"ADMIN_USERNAME": "admin", "ADMIN_PASSWORD": "admin"}):
-            response = self.client.post(
-                "/admin/login",
-                data={"csrf_token": token, "username": "admin", "password": "admin"},
-            )
-            self.assertEqual(response.status_code, 302)
-            self.assertTrue(response.headers["Location"].endswith("/dashboard"))
-
-            admin_response = self.client.get("/admin")
-
-        self.assertEqual(admin_response.status_code, 200)
         self.assertIn(b"Recent admin activity", admin_response.data)
         self.assertIn(b"Login", admin_response.data)
-        self.assertEqual(self.fake_database["admin_events"].documents[0]["event"], "login")
+        self.assertEqual(len(self.fake_database["admin_events"].documents), 1)
 
 
 if __name__ == "__main__":

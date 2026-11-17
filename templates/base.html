@@ -374,6 +374,19 @@
         </header>
 
         <main class="content">
+            {% if session.get('admin_authenticated') %}
+                {% set back_href = url_for('dashboard') %}
+                {% set back_label = 'Back to overview' %}
+            {% elif session.get('portal_patient_id') %}
+                {% set back_href = url_for('portal_dashboard') %}
+                {% set back_label = 'Back to my health' %}
+            {% else %}
+                {% set back_href = url_for('index') %}
+                {% set back_label = 'Back to home' %}
+            {% endif %}
+            {% if request.endpoint not in ['index', 'dashboard', 'portal_dashboard'] %}
+            <a class="btn btn-back" href="{{ back_href }}"><i class="fas fa-arrow-left"></i> {{ back_label }}</a>
+            {% endif %}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                 <div class="flash-messages" role="status">
