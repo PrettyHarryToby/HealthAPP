@@ -19,14 +19,22 @@ This guide will help you set up, run, and develop the Health Database Applicatio
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
+# 1. Copy .env.example to .env and configure MongoDB and an admin password
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Run the web application
+# 3. Start MongoDB locally, or use a MongoDB Atlas URI, then run:
 python app_web.py
 
-# 3. Open browser to http://localhost:5000
+# 4. Open http://localhost:5000 and sign in
 ```
+
+Clinical workspace routes require staff sign-in; the patient portal has a separate,
+read-only, patient-scoped account flow. `/admin` shows MongoDB storage status and counts.
+Patient self-registration checks the chart ID, date of birth, and registered email, then
+verifies ownership with a Brevo SMTP one-time code. Configure the Brevo SMTP login, SMTP
+key, and verified sender in `.env` or Render. Do not commit `.env`.
 
 ---
 
@@ -83,14 +91,23 @@ pip install -r requirements.txt
 ```
 
 This installs:
-- **SQLAlchemy** (2.0.36+) - Database ORM
-- **Flask** (3.0.0+) - Web framework
+- **Flask** - Web framework
+- **PyMongo** - MongoDB client
+- **SQLAlchemy** - Existing model definitions and SQLite import support
 
 ### Step 4: Verify Installation
 
 ```bash
-python -c "import flask, sqlalchemy; print('All dependencies installed!')"
+python -c "import flask, sqlalchemy, pymongo; print('All dependencies installed!')"
 ```
+
+### Step 5: Configure MongoDB and administrator access
+
+Copy `.env.example` to `.env`. Set a MongoDB URI, database name, admin username,
+and unique admin password. For patient self-signup, fill in the Brevo SMTP login,
+SMTP key (not the API key), and a verified sender address. The checked-in example contains
+placeholders and is not usable until configured. The Render blueprint prompts for the
+secrets.
 
 ---
 
@@ -157,6 +174,10 @@ HealthAPP/
 ├── app.py                     # Desktop GUI application (Tkinter)
 ├── models.py                  # Database models (SQLAlchemy ORM)
 ├── database.py                # Database connection and initialization
+├── migrate_sqlite_to_mongodb.py # Copy SQLite records into MongoDB
+├── render.yaml                # Render's recognized deployment blueprint
+├── .render.yaml               # Matching dotfile requested for this project
+├── .env.example               # Local environment variable template
 ├── analysis.py                # Health analysis and insights functions
 ├── migrate_database.py        # Database migration script
 ├── verify_database.py         # Database schema verification
@@ -168,6 +189,12 @@ HealthAPP/
 │
 ├── templates/                 # HTML templates (Jinja2)
 │   ├── base.html             # Base template with navigation
+│   ├── landing.html          # Staff and patient entry points
+│   ├── portal_login.html     # Patient portal sign-in
+│   ├── portal_register.html  # Verified patient self-registration
+│   ├── portal_verify.html    # Email OTP verification
+│   ├── portal_dashboard.html # Read-only patient-specific view
+│   ├── admin_dashboard.html  # Protected MongoDB admin console
 │   ├── dashboard.html         # Dashboard page
 │   ├── patients.html         # Patient list page
 │   ├── patient_form.html     # Add/edit patient form
@@ -181,7 +208,7 @@ HealthAPP/
 │   ├── gynecological_risk.html
 │   └── insights.html         # Health insights page
 │
-└── health_database.db        # SQLite database (created automatically)
+└── health_database.db        # Existing SQLite source for optional migration
 ```
 
 ---
@@ -305,40 +332,27 @@ HTML templates using Jinja2:
 
 ## Database Management
 
-### Database File
+### MongoDB
 
-- **Location:** `health_database.db` (in project root)
-- **Type:** SQLite (file-based database)
-- **Backup:** Copy `health_database.db` to backup location
+- The web application reads `MONGODB_URI` and `MONGODB_DATABASE` from the environment.
+- Collections are created as records are written; patient IDs and record IDs are indexed.
+- Back up the MongoDB database using MongoDB Atlas or `mongodump`.
 
-### Running Migrations
+### Importing existing SQLite records
 
-When you add new fields to models:
-
-```bash
-python migrate_database.py
-```
-
-This adds new columns without losing data.
-
-### Verifying Database Schema
+The SQLite file is retained as the source. Copy its records to the configured MongoDB:
 
 ```bash
-python verify_database.py
+python migrate_sqlite_to_mongodb.py
 ```
 
-### Resetting Database (WARNING: Deletes all data)
+The import is safe to rerun by record ID and does not delete or modify the SQLite file.
+Set `SQLITE_DATABASE_URL` if the source file is not `health_database.db`.
 
-```bash
-# Delete the database file
-rm health_database.db  # Linux/Mac
-del health_database.db  # Windows
+The older `migrate_database.py`, `verify_database.py`, and `fix_database.py` scripts
+are for inspecting or maintaining a legacy SQLite file only; they do not manage MongoDB.
 
-# Restart the app - it will recreate the database
-python app_web.py
-```
-
-### Database Schema Changes
+### Database model changes
 
 **To add a new field:**
 
@@ -349,14 +363,12 @@ python app_web.py
        new_field = Column(String(100))  # Add new field
    ```
 
-2. **Run migration:**
-   ```bash
-   python migrate_database.py
-   ```
+2. **Update forms** in templates if needed
 
-3. **Update forms** in templates if needed
+3. **Update routes** in `app_web.py` to handle the new field
 
-4. **Update routes** in `app_web.py` to handle the new field
+4. Add a focused test and deploy. MongoDB documents can contain the new field without a
+   relational schema migration.
 
 ---
 
@@ -372,10 +384,8 @@ class Patient(Base):
     emergency_phone = Column(String(20))
 ```
 
-**Step 2: Run Migration**
-```bash
-python migrate_database.py
-```
+**Note:** MongoDB documents are schema-flexible, so adding a field does not require a
+database migration. Register new model collections in `database.MODEL_TYPES`.
 
 **Step 3: Update Form** (`templates/patient_form.html`)
 ```html
@@ -432,10 +442,9 @@ def new_page():
 ### Adding a New Patient Field
 
 1. Edit `models.py` - Add column to `Patient` class
-2. Run `python migrate_database.py`
-3. Edit `templates/patient_form.html` - Add input field
-4. Edit `app_web.py` - Update `add_patient()` and `edit_patient()` routes
-5. Test by adding/editing a patient
+2. Edit `templates/patient_form.html` - Add input field
+3. Edit `app_web.py` - Update `add_patient()` and `edit_patient()` routes
+4. Test by adding/editing a patient
 
 ### Adding a New Test Type
 
@@ -444,7 +453,7 @@ def new_page():
 3. Create route in `app_web.py`
 4. Create template in `templates/`
 5. Add navigation link
-6. Run migration
+6. Register the new collection and add focused tests
 
 ### Modifying Reference Ranges
 
@@ -525,13 +534,14 @@ pip install Flask SQLAlchemy
 - Check template file names match exactly
 - Verify Flask app can find templates folder
 
-#### 5. **Database Schema Errors**
+#### 5. **Legacy SQLite Schema Errors**
 
 **Error:** `no such column: ...`
 
-**Solution:**
+**Solution:** These commands apply only to an old SQLite source file. MongoDB does not
+require relational schema migrations for new document fields.
 ```bash
-# Run migration
+# Legacy SQLite maintenance only
 python migrate_database.py
 
 # Or verify schema
@@ -545,10 +555,9 @@ python verify_database.py
 
 Enable Flask debug mode for detailed error messages:
 
-In `app_web.py`:
-```python
-app.run(debug=True, host='0.0.0.0', port=5000)
-```
+Set `FLASK_DEBUG=true` in `.env` for local debugging. Do not enable it in production.
+
+The local server binds to `127.0.0.1`; production runs with Gunicorn through Render.
 
 **Benefits:**
 - Auto-reload on code changes
@@ -626,11 +635,12 @@ def get_patient_stats(patient_id):
 
 ### Production Checklist
 
-- [ ] Change Flask secret key
+- [ ] Set a strong `FLASK_SECRET_KEY`
+- [ ] Set unique administrator credentials
 - [ ] Disable debug mode
 - [ ] Set up proper database backups
 - [ ] Configure HTTPS
-- [ ] Add authentication/authorization
+- [x] Require administrator authentication for application routes
 - [ ] Set up logging
 - [ ] Configure proper error handling
 - [ ] Use production WSGI server (Gunicorn, uWSGI)
@@ -639,9 +649,18 @@ def get_patient_stats(patient_id):
 
 Create `.env` file:
 ```
-FLASK_SECRET_KEY=your-secret-key-here
-DATABASE_URL=sqlite:///health_database.db
-FLASK_ENV=production
+MONGODB_URI=mongodb+srv://...
+MONGODB_DATABASE=healthapp
+FLASK_SECRET_KEY=generate-a-long-random-secret
+ADMIN_USERNAME=your-admin-name
+ADMIN_PASSWORD=your-unique-strong-password
+SESSION_COOKIE_SECURE=true
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USERNAME=your-brevo-smtp-login
+SMTP_PASSWORD=your-brevo-smtp-key
+SMTP_FROM=your-verified-sender@example.com
+SMTP_USE_TLS=true
 ```
 
 ---

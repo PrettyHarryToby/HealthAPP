@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}My health · Health Database{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <p class="eyebrow"><i class="fas fa-user-shield"></i> Private patient portal</p>
+    <h1 class="dashboard-section-title" style="margin-top: 6px;">My health overview</h1>
+    <div class="patient-info">
+        <h2>{{ patient.first_name }} {{ patient.last_name }}</h2>
+        <p style="margin: 0; color: var(--muted);">Patient ID {{ patient.patient_id }} · Date of birth {{ patient.date_of_birth }}</p>
+    </div>
+    <div class="flash-message" style="color: var(--muted);">
+        <i class="fas fa-lock" style="color: var(--mint);"></i>
+        This read-only view contains your personal health information. Only your own chart is shown.
+    </div>
+</section>
+
+<section class="dashboard-section">
+    <h2 class="dashboard-section-title"><i class="fas fa-vial"></i> Blood test results</h2>
+    {% if blood_records %}
+    <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Hemoglobin</th><th>Glucose</th><th>HbA1c</th><th>Total protein</th></tr></thead>
+        <tbody>
+            {% for record in blood_records %}
+            <tr><td>{{ record.test_date }}</td><td>{{ record.hemoglobin if record.hemoglobin is not none else '—' }}</td><td>{{ record.glucose if record.glucose is not none else '—' }}</td><td>{{ record.hemoglobin_a1c if record.hemoglobin_a1c is not none else '—' }}</td><td>{{ record.total_protein if record.total_protein is not none else '—' }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}<p style="color: var(--muted);">No blood test results are available yet.</p>{% endif %}
+</section>
+
+<section class="dashboard-section">
+    <h2 class="dashboard-section-title"><i class="fas fa-capsules"></i> Vitamins & micronutrients</h2>
+    <div class="form-row">
+        <article class="card">
+            <h3>Vitamin panels</h3>
+            {% if vitamin_records %}
+            <div class="table-wrap"><table>
+                <thead><tr><th>Date</th><th>Vitamin D</th><th>B12</th><th>Folate</th></tr></thead>
+                <tbody>{% for record in vitamin_records %}<tr><td>{{ record.test_date }}</td><td>{{ record.vitamin_d if record.vitamin_d is not none else '—' }}</td><td>{{ record.vitamin_b12 if record.vitamin_b12 is not none else '—' }}</td><td>{{ record.vitamin_b9 if record.vitamin_b9 is not none else '—' }}</td></tr>{% endfor %}</tbody>
+            </table></div>
+            {% else %}<p style="color: var(--muted);">No vitamin results available.</p>{% endif %}
+        </article>
+        <article class="card">
+            <h3>Micronutrient panels</h3>
+            {% if micronutrient_records %}
+            <div class="table-wrap"><table>
+                <thead><tr><th>Date</th><th>Calcium</th><th>Magnesium</th><th>Zinc</th></tr></thead>
+                <tbody>{% for record in micronutrient_records %}<tr><td>{{ record.test_date }}</td><td>{{ record.calcium if record.calcium is not none else '—' }}</td><td>{{ record.magnesium if record.magnesium is not none else '—' }}</td><td>{{ record.zinc if record.zinc is not none else '—' }}</td></tr>{% endfor %}</tbody>
+            </table></div>
+            {% else %}<p style="color: var(--muted);">No micronutrient results available.</p>{% endif %}
+        </article>
+    </div>
+</section>
+
+<section class="dashboard-section">
+    <h2 class="dashboard-section-title"><i class="fas fa-notes-medical"></i> Care record</h2>
+    <div class="form-row">
+        <article class="card">
+            <h3>Active medications</h3>
+            {% if active_medications %}
+            {% for medication in active_medications %}
+            <div class="patient-card">
+                <div class="patient-card-info">
+                    <h4>{{ medication.medication_name }}</h4>
+                    <p>{{ medication.dosage or 'Dosage not listed' }} · {{ medication.frequency or 'Frequency not listed' }}</p>
+                    <p>Started {{ medication.start_date }}</p>
+                </div>
+                <span class="badge badge-success">Active</span>
+            </div>
+            {% endfor %}
+            {% else %}<p style="color: var(--muted);">No active medications are listed.</p>{% endif %}
+        </article>
+        <article class="card">
+            <h3>Reproductive health</h3>
+            {% if reproductive_records %}
+            {% for record in reproductive_records %}
+            <div class="patient-card">
+                <div class="patient-card-info">
+                    <h4>Record · {{ record.record_date }}</h4>
+                    <p>Cycle: {{ record.menstrual_regularity or 'Not recorded' }}{% if record.cycle_length %} · {{ record.cycle_length }} days{% endif %}</p>
+                    <p>Pregnancy status: {{ record.pregnancy_status or 'Not recorded' }}</p>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}<p style="color: var(--muted);">No reproductive health records are available.</p>{% endif %}
+        </article>
+    </div>
+</section>
+
+<section class="dashboard-section">
+    <h2 class="dashboard-section-title"><i class="fas fa-shield-heart"></i> Personal health records</h2>
+    <div class="form-row">
+        <article class="card">
+            <h3>Genetic test records</h3>
+            {% if genetic_records %}
+            {% for record in genetic_records %}
+            <div class="patient-card"><div class="patient-card-info"><h4>{{ record.test_type or 'Genetic test' }} · {{ record.test_date }}</h4><p>{{ record.interpretation or 'No interpretation recorded.' }}</p></div></div>
+            {% endfor %}
+            {% else %}<p style="color: var(--muted);">No genetic test records are available.</p>{% endif %}
+        </article>
+        <article class="card">
+            <h3>Risk assessment</h3>
+            {% if risk_records %}
+            {% for record in risk_records %}
+            <div class="patient-card"><div class="patient-card-info"><h4>{{ record.overall_risk_level or 'Assessment' }} · {{ record.record_date }}</h4><p>{{ record.risk_factors_summary or 'No summary recorded.' }}</p><p>Next screening: {{ record.next_screening_due_date or 'Not recorded' }}</p></div></div>
+            {% endfor %}
+            {% else %}<p style="color: var(--muted);">No risk assessments are available.</p>{% endif %}
+        </article>
+    </div>
+    {% if needs_records %}
+    <article class="card">
+        <h3>Personal needs</h3>
+        {% for record in needs_records %}
+        <div class="patient-card"><div class="patient-card-info"><h4>Record · {{ record.record_date }}</h4><p>Diet: {{ record.special_diet or 'Not recorded' }} · Activity: {{ record.activity_level or 'Not recorded' }}</p><p>{{ record.health_goals or record.special_requirements or 'No additional notes.' }}</p></div></div>
+        {% endfor %}
+    </article>
+    {% endif %}
+</section>
+
+<p style="color: var(--muted); font-size: 11px;">This portal displays information entered by your care team and is not a substitute for medical advice. Contact your clinic if a record appears incorrect.</p>
+{% endblock %}

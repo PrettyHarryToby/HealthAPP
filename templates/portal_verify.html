@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Verify email · Health Database{% endblock %}
+
+{% block content %}
+<section class="card" style="max-width: 500px; margin: 8vh auto;">
+    <p class="eyebrow"><i class="fas fa-envelope-circle-check"></i> Patient portal / email check</p>
+    <h2 style="margin: 8px 0 4px;">Check your email</h2>
+    <p style="color: var(--muted); margin: 0 0 22px;">
+        If the details match a patient record, a one-time code was sent to the email address on file. The code expires in 10 minutes.
+    </p>
+    {% if challenge_available %}
+    <form method="POST" autocomplete="one-time-code">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-group">
+            <label for="code">6-digit verification code</label>
+            <input id="code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+        </div>
+        <button class="btn" type="submit"><i class="fas fa-check"></i> Verify and continue</button>
+    </form>
+    {% else %}
+    <p class="flash-message error">No active verification request was found. Start registration to request a new code.</p>
+    {% endif %}
+    <p style="margin: 18px 0 0;"><a href="{{ url_for('portal_register') }}" style="color: var(--mint);">Back to registration</a></p>
+</section>
+{% endblock %}

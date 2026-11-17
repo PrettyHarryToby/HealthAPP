@@ -3,143 +3,505 @@ Flask Web Application for Health Database System
 Run this file to start the web server: python app_web.py
 Then open http://localhost:5000 in your browser
 """
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from datetime import datetime, date, timedelta
-from database import init_database, get_session, close_session
+import hmac
+import hashlib
+import os
+import secrets
+import smtplib
+import ssl
+from email.message import EmailMessage
+from flask import Flask, abort, current_app, render_template, request, redirect, url_for, flash, jsonify, session as web_session
+from datetime import datetime, date, timedelta, timezone
+from sqlalchemy import desc
+from pymongo.errors import DuplicateKeyError
+from werkzeug.security import check_password_hash, generate_password_hash
+from database import init_database, get_session, close_session, get_database, get_model_types
 from models import (
     Patient, BloodParameters, ReproductiveHealth, VitaminLevels,
     MicronutrientLevels, Medication, GeneticData, PatientNeeds,
     GynecologicalRiskIndicators
 )
-from analysis import generate_health_insights, analyze_vitamin_trends, analyze_micronutrient_trends
-from sqlalchemy import desc, func, event
-from database import engine
+from analysis import generate_health_insights
 
 app = Flask(__name__)
-app.secret_key = 'health-database-secret-key-change-in-production'
+configured_secret = os.getenv("FLASK_SECRET_KEY", "")
+if not configured_secret or configured_secret in {
+    "replace-this-with-a-long-random-secret",
+    "generate-a-long-random-secret",
+}:
+    configured_secret = secrets.token_hex(32)
+app.secret_key = configured_secret
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true",
+)
 
-# Initialize database on startup
+# Verify the configured MongoDB instance before accepting requests.
 init_database()
 
-# Run migrations to add new columns/tables
-try:
-    from migrate_database import migrate_database
-    migrate_database()
-except Exception as e:
-    print(f"Note: Migration check completed (some columns may already exist): {e}")
 
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_conn, connection_record):
-    """Set SQLite pragmas for better compatibility"""
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+@app.before_request
+def require_admin_login():
+    endpoint = request.endpoint or ""
+    public_endpoints = {
+        "index", "admin_login", "portal_login", "portal_register",
+        "portal_verify", "portal_logout", "faq", "terms", "privacy",
+        "health", "static",
+    }
+    if endpoint in public_endpoints:
+        if web_session.get("admin_authenticated") and endpoint.startswith("portal_"):
+            return redirect(url_for("dashboard"))
+        if web_session.get("portal_patient_id") and endpoint.startswith("portal_") and endpoint != "portal_logout":
+            return redirect(url_for("portal_dashboard"))
+        if web_session.get("portal_patient_id") and endpoint == "portal_logout":
+            return None
+        if web_session.get("portal_patient_id") and endpoint.startswith("admin_"):
+            return redirect(url_for("portal_dashboard"))
+        return None
+    if web_session.get("admin_authenticated"):
+        if endpoint.startswith("portal_"):
+            return redirect(url_for("dashboard"))
+        return None
+    if web_session.get("portal_patient_id"):
+        if endpoint in {"portal_dashboard", "portal_logout"}:
+            return None
+        return redirect(url_for("portal_dashboard"))
+    if endpoint.startswith("portal_"):
+        return redirect(url_for("portal_login"))
+    return redirect(url_for("admin_login", next=request.full_path))
+
+
+@app.after_request
+def prevent_sensitive_page_caching(response):
+    response.headers["Cache-Control"] = "no-store, private"
+    return response
+
+
+def admin_credentials_configured():
+    username = os.getenv("ADMIN_USERNAME", "").strip()
+    password = os.getenv("ADMIN_PASSWORD", "")
+    placeholders = {
+        "change-this-before-use",
+        "choose-a-unique-strong-password",
+    }
+    return bool(username and password and password not in placeholders)
+
+
+def secure_compare(first, second):
+    return hmac.compare_digest(first.encode("utf-8"), second.encode("utf-8"))
+
+
+def valid_csrf_token():
+    expected = web_session.get("csrf_token", "")
+    provided = request.form.get("csrf_token", "")
+    return bool(expected) and secure_compare(expected, provided)
+
+
+def smtp_configured():
+    configured = all(os.getenv(key, "").strip() for key in (
+        "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_FROM",
+    )) and (
+        os.getenv("SMTP_PASSWORD") != "your-brevo-smtp-key"
+        and os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    )
+    try:
+        port = int(os.getenv("SMTP_PORT", "587"))
+    except ValueError:
+        return False
+    return configured and 1 <= port <= 65535
+
+
+def send_portal_verification(email, code):
+    message = EmailMessage()
+    message["Subject"] = "Your Health Database verification code"
+    message["From"] = os.environ["SMTP_FROM"]
+    message["To"] = email
+    message.set_content(
+        f"Your verification code is {code}. It expires in 10 minutes. "
+        "If you did not request this, you can ignore this message."
+    )
+    host = os.environ["SMTP_HOST"]
+    port = int(os.getenv("SMTP_PORT", "587"))
+    with smtplib.SMTP(host, port, timeout=15) as smtp:
+        smtp.starttls(context=ssl.create_default_context())
+        smtp.login(os.environ["SMTP_USERNAME"], os.environ["SMTP_PASSWORD"])
+        smtp.send_message(message)
 
 
 @app.context_processor
 def inject_today():
     """Make today's date available to all templates"""
-    return dict(today=date.today())
+    return dict(today=date.today(), csrf_token=web_session.get("csrf_token"))
+
+
+@app.route("/health")
+def health():
+    """Render health check endpoint."""
+    get_database().client.admin.command("ping")
+    return jsonify(status="ok")
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if web_session.get("admin_authenticated"):
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        username = os.getenv("ADMIN_USERNAME", "")
+        password = os.getenv("ADMIN_PASSWORD", "")
+        if not admin_credentials_configured():
+            abort(503, description="Set ADMIN_USERNAME and ADMIN_PASSWORD in the environment.")
+        if not valid_csrf_token():
+            abort(400, description="Invalid form token. Reload the page and try again.")
+        submitted_username = request.form.get("username", "")
+        submitted_password = request.form.get("password", "")
+        username_matches = secure_compare(submitted_username, username)
+        password_matches = len(submitted_password) <= 256 and secure_compare(submitted_password, password)
+        if username_matches and password_matches:
+            web_session.clear()
+            web_session["admin_authenticated"] = True
+            web_session["admin_username"] = username
+            web_session["csrf_token"] = secrets.token_urlsafe(32)
+            get_database()["admin_events"].insert_one({
+                "event": "login",
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            })
+            return redirect(url_for("dashboard"))
+        flash("The username or password was not accepted.", "error")
+    if not web_session.get("csrf_token"):
+        web_session["csrf_token"] = secrets.token_urlsafe(32)
+    return render_template(
+        "admin_login.html",
+        login_configured=admin_credentials_configured(),
+    )
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    web_session.clear()
+    return redirect(url_for("admin_login"))
+
+
+@app.route("/admin")
+def admin_dashboard():
+    database = get_database()
+    collection_names = [model.__tablename__ for model in get_model_types()]
+    collections = [
+        {"name": name, "count": database[name].count_documents({})}
+        for name in collection_names
+    ]
+    events = list(database["admin_events"].find({}, {"_id": 0}).sort("created_at", -1).limit(8))
+    return render_template(
+        "admin_dashboard.html",
+        collections=collections,
+        total_documents=sum(item["count"] for item in collections),
+        portal_users=database["portal_users"].count_documents({}),
+        admin_events_count=database["admin_events"].count_documents({}),
+        database_name=database.name,
+        events=events,
+    )
+
+
+@app.route("/portal/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
+def portal_login():
+    if request.method == "POST":
+        if not valid_csrf_token():
+            abort(400, description="Invalid form token. Reload the page and try again.")
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        account = get_database()["portal_users"].find_one({"email": email}) if len(email) <= 254 else None
+        if account and len(password) <= 256 and check_password_hash(account["password_hash"], password):
+            web_session.clear()
+            web_session["portal_patient_id"] = account["patient_ref"]
+            web_session["csrf_token"] = secrets.token_urlsafe(32)
+            get_database()["admin_events"].insert_one({
+                "event": "patient_portal_login",
+                "patient_ref": account["patient_ref"],
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+            })
+            return redirect(url_for("portal_dashboard"))
+        flash("The email or password was not accepted.", "error")
+    if not web_session.get("csrf_token"):
+        web_session["csrf_token"] = secrets.token_urlsafe(32)
+    return render_template("portal_login.html")
+
+
+@app.route("/portal/register", methods=["GET", "POST"])
+def portal_register():
+    if request.method == "POST":
+        if not valid_csrf_token():
+            abort(400, description="Invalid form token. Reload the page and try again.")
+        if not smtp_configured():
+            abort(503, description="Patient email verification is not configured. Contact the administrator.")
+
+        patient_code = request.form.get("patient_id", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        date_of_birth = request.form.get("date_of_birth", "").strip()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        if not email or len(email) > 254 or "@" not in email:
+            flash("Enter the email address registered with the clinic.", "error")
+            return render_template("portal_register.html", signup_enabled=True)
+        if not password or len(password) < 12 or len(password) > 256:
+            flash("Use a password between 12 and 256 characters.", "error")
+            return render_template("portal_register.html", signup_enabled=True)
+        if password != confirm_password:
+            flash("The passwords do not match.", "error")
+            return render_template("portal_register.html", signup_enabled=True)
+        try:
+            supplied_dob = date.fromisoformat(date_of_birth)
+        except ValueError:
+            supplied_dob = None
+
+        challenge_id = secrets.token_urlsafe(32)
+        web_session["portal_challenge_id"] = challenge_id
+        pending_collection = get_database()["portal_pending"]
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        email_hash = hashlib.sha256(email.encode("utf-8")).hexdigest()
+        rate_collection = get_database()["portal_rate_limits"]
+        recent_requests = rate_collection.count_documents({
+            "email_hash": email_hash,
+            "expires_at": {"$gt": now},
+        })
+        if recent_requests < 3:
+            rate_collection.insert_one({
+                "email_hash": email_hash,
+                "expires_at": now + timedelta(hours=1),
+            })
+        db_session = get_session()
+        try:
+            patient = db_session.query(Patient).filter_by(patient_id=patient_code).first()
+        finally:
+            close_session(db_session)
+        account_exists = get_database()["portal_users"].find_one({
+            "$or": [
+                {"email": email},
+                {"patient_ref": patient.id if patient else -1},
+            ]
+        })
+        details_match = bool(
+            patient
+            and supplied_dob == patient.date_of_birth
+            and email == (patient.email or "").strip().lower()
+        )
+
+        if details_match and not account_exists and recent_requests < 3:
+            code = f"{secrets.randbelow(1_000_000):06d}"
+            pending_collection.delete_many({"patient_ref": patient.id})
+            pending_collection.insert_one({
+                "_id": challenge_id,
+                "patient_ref": patient.id,
+                "email": email,
+                "password_hash": generate_password_hash(password),
+                "code_hash": generate_password_hash(code),
+                "attempts": 0,
+                "created_at": now,
+                "expires_at": now + timedelta(minutes=10),
+            })
+            try:
+                send_portal_verification(email, code)
+            except (OSError, smtplib.SMTPException, ValueError):
+                current_app.logger.exception("Patient portal verification email could not be sent")
+                pending_collection.delete_one({"_id": challenge_id})
+                abort(503, description="Email delivery is temporarily unavailable. Try again later.")
+        flash("If the details match a registered patient record, a verification code has been sent to its email.", "success")
+        return redirect(url_for("portal_verify"))
+
+    if not web_session.get("csrf_token"):
+        web_session["csrf_token"] = secrets.token_urlsafe(32)
+    return render_template("portal_register.html", signup_enabled=smtp_configured())
+
+
+@app.route("/portal/verify", methods=["GET", "POST"])
+def portal_verify():
+    if request.method == "POST":
+        if not valid_csrf_token():
+            abort(400, description="Invalid form token. Reload the page and try again.")
+        challenge_id = web_session.get("portal_challenge_id")
+        collection = get_database()["portal_pending"]
+        pending = collection.find_one({"_id": challenge_id}) if challenge_id else None
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if not pending or pending["expires_at"] <= now or pending["attempts"] >= 5:
+            if challenge_id:
+                collection.delete_one({"_id": challenge_id})
+            web_session.pop("portal_challenge_id", None)
+            flash("The verification request is invalid or expired. Please register again.", "error")
+            return redirect(url_for("portal_register"))
+
+        code = request.form.get("code", "").strip()
+        code_matches = len(code) == 6 and code.isdecimal() and check_password_hash(pending["code_hash"], code)
+        if not code_matches:
+            collection.update_one({"_id": challenge_id}, {"$inc": {"attempts": 1}})
+            flash("The verification code was not accepted.", "error")
+            return render_template("portal_verify.html", challenge_available=True)
+
+        try:
+            get_database()["portal_users"].insert_one({
+                "patient_ref": pending["patient_ref"],
+                "email": pending["email"],
+                "password_hash": pending["password_hash"],
+                "created_at": now,
+            })
+        except DuplicateKeyError:
+            collection.delete_one({"_id": challenge_id})
+            web_session.pop("portal_challenge_id", None)
+            flash("An account already exists for these patient details. Sign in or contact the clinic.", "error")
+            return redirect(url_for("portal_login"))
+
+        collection.delete_one({"_id": challenge_id})
+        web_session.clear()
+        web_session["portal_patient_id"] = pending["patient_ref"]
+        web_session["csrf_token"] = secrets.token_urlsafe(32)
+        flash("Your patient portal is ready.", "success")
+        return redirect(url_for("portal_dashboard"))
+
+    if not web_session.get("csrf_token"):
+        web_session["csrf_token"] = secrets.token_urlsafe(32)
+    challenge_id = web_session.get("portal_challenge_id")
+    pending = get_database()["portal_pending"].find_one({"_id": challenge_id}) if challenge_id else None
+    return render_template("portal_verify.html", challenge_available=bool(pending))
+
+
+@app.route("/portal")
+def portal_dashboard():
+    patient_id = web_session.get("portal_patient_id")
+    account = get_database()["portal_users"].find_one({"patient_ref": patient_id})
+    session = get_session()
+    try:
+        patient = session.query(Patient).filter_by(id=patient_id).first() if account else None
+        if not patient:
+            web_session.clear()
+            flash("This portal account is no longer available. Contact the clinic.", "error")
+            return redirect(url_for("portal_login"))
+        blood_records = session.query(BloodParameters).filter_by(patient_id=patient.id).order_by(
+            desc(BloodParameters.test_date)
+        ).limit(5).all()
+        vitamin_records = session.query(VitaminLevels).filter_by(patient_id=patient.id).order_by(
+            desc(VitaminLevels.test_date)
+        ).limit(5).all()
+        micronutrient_records = session.query(MicronutrientLevels).filter_by(patient_id=patient.id).order_by(
+            desc(MicronutrientLevels.test_date)
+        ).limit(5).all()
+        active_medications = session.query(Medication).filter_by(
+            patient_id=patient.id, is_active=True
+        ).order_by(desc(Medication.start_date)).all()
+        reproductive_records = session.query(ReproductiveHealth).filter_by(
+            patient_id=patient.id
+        ).order_by(desc(ReproductiveHealth.record_date)).limit(3).all()
+        genetic_records = session.query(GeneticData).filter_by(
+            patient_id=patient.id
+        ).order_by(desc(GeneticData.test_date)).limit(3).all()
+        risk_records = session.query(GynecologicalRiskIndicators).filter_by(
+            patient_id=patient.id
+        ).order_by(desc(GynecologicalRiskIndicators.record_date)).limit(3).all()
+        needs_records = session.query(PatientNeeds).filter_by(
+            patient_id=patient.id
+        ).order_by(desc(PatientNeeds.record_date)).limit(3).all()
+        return render_template(
+            "portal_dashboard.html",
+            patient=patient,
+            blood_records=blood_records,
+            vitamin_records=vitamin_records,
+            micronutrient_records=micronutrient_records,
+            active_medications=active_medications,
+            reproductive_records=reproductive_records,
+            genetic_records=genetic_records,
+            risk_records=risk_records,
+            needs_records=needs_records,
+        )
+    finally:
+        close_session(session)
+
+
+@app.route("/portal/logout")
+def portal_logout():
+    web_session.clear()
+    return redirect(url_for("portal_login"))
 
 
 @app.route('/')
 def index():
-    """Home page - redirect to dashboard"""
-    return redirect(url_for('dashboard'))
+    if web_session.get("admin_authenticated"):
+        return redirect(url_for("dashboard"))
+    if web_session.get("portal_patient_id"):
+        return redirect(url_for("portal_dashboard"))
+    return render_template("landing.html")
+
+
+@app.route("/faq")
+def faq():
+    return render_template("faq.html")
+
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
 
 
 @app.route('/dashboard')
 def dashboard():
-    """
-    Advanced dashboard with statistics and overview
-    Optimized to reduce database queries using joins and bulk operations
-    """
     session = get_session()
     try:
-        # Get statistics (optimized single queries)
-        total_patients = session.query(Patient).count()
-        active_medications = session.query(Medication).filter_by(is_active=True).count()
-        genetic_tests = session.query(GeneticData).count()
-        
-        # Recent patients
-        recent_patients = session.query(Patient).order_by(desc(Patient.created_at)).limit(5).all()
-        
-        # Recent activity (last 7 days) - single query
+        patients = session.query(Patient).all()
+        medications = session.query(Medication).all()
+        genetic_records = session.query(GeneticData).all()
+        vitamin_records = session.query(VitaminLevels).all()
+        blood_records = session.query(BloodParameters).all()
+        risk_records = session.query(GynecologicalRiskIndicators).all()
+        patient_by_id = {patient.id: patient for patient in patients}
+        def latest_by_patient(records, date_field):
+            latest = {}
+            for record in records:
+                previous = latest.get(record.patient_id)
+                current_date = getattr(record, date_field) or date.min
+                previous_date = getattr(previous, date_field) or date.min if previous else date.min
+                if previous is None or current_date > previous_date:
+                    latest[record.patient_id] = record
+            return latest
+
+        recent_patients = sorted(
+            patients, key=lambda patient: patient.created_at or datetime.min, reverse=True
+        )[:5]
         seven_days_ago = datetime.now().date() - timedelta(days=7)
-        recent_vitamin_tests = session.query(VitaminLevels).filter(VitaminLevels.test_date >= seven_days_ago).count()
-        recent_blood_tests = session.query(BloodParameters).filter(BloodParameters.test_date >= seven_days_ago).count()
-        
-        # Optimize: Get all patients with their latest test data in bulk
-        # Use subqueries to get latest test dates per patient
-        
-        # Get latest vitamin test per patient
-        latest_vitamin_subq = session.query(
-            VitaminLevels.patient_id,
-            func.max(VitaminLevels.test_date).label('max_date')
-        ).group_by(VitaminLevels.patient_id).subquery()
-        
-        # Get latest blood test per patient
-        latest_blood_subq = session.query(
-            BloodParameters.patient_id,
-            func.max(BloodParameters.test_date).label('max_date')
-        ).group_by(BloodParameters.patient_id).subquery()
-        
-        # Join to get patients with recent tests
-        patients_with_recent_tests_query = session.query(
-            Patient,
-            latest_vitamin_subq.c.max_date.label('last_vitamin_test'),
-            latest_blood_subq.c.max_date.label('last_blood_test')
-        ).outerjoin(
-            latest_vitamin_subq, Patient.id == latest_vitamin_subq.c.patient_id
-        ).outerjoin(
-            latest_blood_subq, Patient.id == latest_blood_subq.c.patient_id
-        ).filter(
-            (latest_vitamin_subq.c.max_date != None) | (latest_blood_subq.c.max_date != None)
-        ).limit(10).all()
-        
-        # Convert to dict format for template
-        patients_with_recent_tests_list = []
-        for result in patients_with_recent_tests_query:
-            patients_with_recent_tests_list.append({
-                'patient': result[0],  # Patient object
-                'last_vitamin_test': result[1],  # last_vitamin_test date
-                'last_blood_test': result[2]  # last_blood_test date
-            })
-        
-        # Optimize: Get all patients needing attention in bulk
-        # Get all vitamin levels with deficiencies
-        all_vitamin_levels = session.query(VitaminLevels).join(Patient).all()
+        recent_vitamin_tests = sum(
+            1 for record in vitamin_records if record.test_date and record.test_date >= seven_days_ago
+        )
+        recent_blood_test_count = sum(
+            1 for record in blood_records if record.test_date and record.test_date >= seven_days_ago
+        )
+        latest_vitamins = latest_by_patient(vitamin_records, "test_date")
+        latest_blood = latest_by_patient(blood_records, "test_date")
+        patients_with_recent_tests_list = [
+            {
+                "patient": patient,
+                "last_vitamin_test": latest_vitamins.get(patient.id).test_date if patient.id in latest_vitamins else None,
+                "last_blood_test": latest_blood.get(patient.id).test_date if patient.id in latest_blood else None,
+            }
+            for patient in patients
+            if patient.id in latest_vitamins or patient.id in latest_blood
+        ][:10]
+
         patients_with_deficiencies = set()
-        
-        from analysis import get_vitamin_status, VITAMIN_REFERENCE_RANGES
-        for vl in all_vitamin_levels:
+        from analysis import get_vitamin_status
+        for vl in vitamin_records:
             for vitamin_field in ['vitamin_d', 'vitamin_b12', 'vitamin_b9', 'vitamin_c']:
                 value = getattr(vl, vitamin_field)
                 if value and get_vitamin_status(value, vitamin_field) == "Low":
                     patients_with_deficiencies.add(vl.patient_id)
                     break
-        
         patients_needing_attention = len(patients_with_deficiencies)
-        
-        # Optimize: Get patients with protein issues using bulk query
-        # Get all recent blood tests (one per patient, latest)
-        recent_blood_tests = session.query(
-            BloodParameters.patient_id,
-            func.max(BloodParameters.test_date).label('max_date')
-        ).group_by(BloodParameters.patient_id).subquery()
-        
-        blood_with_protein = session.query(
-            BloodParameters, Patient
-        ).join(
-            Patient, BloodParameters.patient_id == Patient.id
-        ).join(
-            recent_blood_tests,
-            (BloodParameters.patient_id == recent_blood_tests.c.patient_id) &
-            (BloodParameters.test_date == recent_blood_tests.c.max_date)
-        ).all()
-        
+
         patients_with_protein_issues = []
-        for blood, patient in blood_with_protein:
+        for patient_id, blood in latest_blood.items():
+            patient = patient_by_id.get(patient_id)
+            if not patient:
+                continue
             issues = []
             if blood.total_protein and (blood.total_protein < 6.0 or blood.total_protein > 8.3):
                 issues.append(f"Total Protein: {blood.total_protein} g/dL")
@@ -156,104 +518,61 @@ def dashboard():
                     'issues': issues,
                     'test_date': blood.test_date
                 })
-        
-        # Optimize: Get patients with inactive medications in bulk
-        inactive_meds_by_patient = session.query(
-            Medication.patient_id,
-            func.count(Medication.id).label('med_count')
-        ).filter_by(is_active=False).group_by(Medication.patient_id).all()
-        
-        patient_ids_with_inactive = {med[0]: med[1] for med in inactive_meds_by_patient}
-        
-        if patient_ids_with_inactive:
-            patients_with_inactive_meds_data = session.query(
-                Patient, Medication
-            ).join(
-                Medication, Patient.id == Medication.patient_id
-            ).filter(
-                Medication.patient_id.in_(patient_ids_with_inactive.keys()),
-                Medication.is_active == False
-            ).order_by(Medication.start_date.desc()).all()
-            
-            # Group medications by patient
-            patients_with_inactive_meds_dict = {}
-            for patient, med in patients_with_inactive_meds_data:
-                if patient.id not in patients_with_inactive_meds_dict:
-                    patients_with_inactive_meds_dict[patient.id] = {
-                        'patient': patient,
-                        'medications': [],
-                        'count': patient_ids_with_inactive[patient.id]
-                    }
-                patients_with_inactive_meds_dict[patient.id]['medications'].append(med)
-            
-            patients_with_inactive_meds = list(patients_with_inactive_meds_dict.values())[:10]
-        else:
-            patients_with_inactive_meds = []
-        
-        # Optimize: Get gynecological risks in bulk
+
+        inactive_by_patient = {}
+        for medication in medications:
+            if not medication.is_active:
+                inactive_by_patient.setdefault(medication.patient_id, []).append(medication)
+        patients_with_inactive_meds = [
+            {
+                "patient": patient_by_id[patient_id],
+                "medications": sorted(records, key=lambda med: med.start_date or date.min, reverse=True),
+                "count": len(records),
+            }
+            for patient_id, records in inactive_by_patient.items()
+            if patient_id in patient_by_id
+        ][:10]
+
         patients_with_gyn_risks = []
-        try:
-            # Get latest risk assessment per patient
-            latest_gyn_risks_subq = session.query(
-                GynecologicalRiskIndicators.patient_id,
-                func.max(GynecologicalRiskIndicators.record_date).label('max_date')
-            ).group_by(GynecologicalRiskIndicators.patient_id).subquery()
-            
-            gyn_risks_data = session.query(
-                GynecologicalRiskIndicators, Patient, GeneticData
-            ).join(
-                Patient, GynecologicalRiskIndicators.patient_id == Patient.id
-            ).outerjoin(
-                GeneticData, Patient.id == GeneticData.patient_id
-            ).join(
-                latest_gyn_risks_subq,
-                (GynecologicalRiskIndicators.patient_id == latest_gyn_risks_subq.c.patient_id) &
-                (GynecologicalRiskIndicators.record_date == latest_gyn_risks_subq.c.max_date)
-            ).all()
-            
-            for risk, patient, genetic in gyn_risks_data:
-                risk_factors = []
-                
-                if risk.family_history_breast_cancer or risk.family_history_ovarian_cancer:
-                    risk_factors.append("Family History")
-                if risk.personal_history_breast_cancer or risk.personal_history_ovarian_cancer:
-                    risk_factors.append("Personal History")
-                if genetic and (genetic.brca1_mutation or genetic.brca2_mutation):
-                    risk_factors.append("BRCA Mutation")
-                if risk.overall_risk_level in ['High', 'Very High']:
-                    risk_factors.append(f"Risk Level: {risk.overall_risk_level}")
-                if risk.ca125_level and risk.ca125_level > 35:
-                    risk_factors.append(f"CA-125 elevated: {risk.ca125_level}")
-                
-                if risk_factors or risk.overall_risk_level:
-                    patients_with_gyn_risks.append({
-                        'patient': patient,
-                        'risk_level': risk.overall_risk_level or 'Not Assessed',
-                        'risk_factors': risk_factors,
-                        'record_date': risk.record_date
-                    })
-        except Exception as e:
-            print(f"Warning: Error loading gynecological risk indicators: {e}")
-            patients_with_gyn_risks = []
-        
-        # Count statistics
-        total_inactive_medications = session.query(Medication).filter_by(is_active=False).count()
-        patients_with_gyn_risk_count = len(patients_with_gyn_risks)
-        patients_with_protein_issues_count = len(patients_with_protein_issues)
+        latest_risks = latest_by_patient(risk_records, "record_date")
+        latest_genetics = latest_by_patient(genetic_records, "test_date")
+        for patient_id, risk in latest_risks.items():
+            patient = patient_by_id.get(patient_id)
+            if not patient:
+                continue
+            genetic = latest_genetics.get(patient_id)
+            risk_factors = []
+            if risk.family_history_breast_cancer or risk.family_history_ovarian_cancer:
+                risk_factors.append("Family History")
+            if risk.personal_history_breast_cancer or risk.personal_history_ovarian_cancer:
+                risk_factors.append("Personal History")
+            if genetic and (genetic.brca1_mutation or genetic.brca2_mutation):
+                risk_factors.append("BRCA Mutation")
+            if risk.overall_risk_level in ['High', 'Very High']:
+                risk_factors.append(f"Risk Level: {risk.overall_risk_level}")
+            if risk.ca125_level and risk.ca125_level > 35:
+                risk_factors.append(f"CA-125 elevated: {risk.ca125_level}")
+            if risk_factors or risk.overall_risk_level:
+                patients_with_gyn_risks.append({
+                    "patient": patient,
+                    "risk_level": risk.overall_risk_level or "Not Assessed",
+                    "risk_factors": risk_factors,
+                    "record_date": risk.record_date,
+                })
         
         return render_template('dashboard.html',
-                             total_patients=total_patients,
+                             total_patients=len(patients),
                              recent_patients=recent_patients,
-                             patients_with_recent_tests=patients_with_recent_tests_list[:10],
+                             patients_with_recent_tests=patients_with_recent_tests_list,
                              patients_needing_attention=patients_needing_attention,
-                             active_medications=active_medications,
-                             genetic_tests=genetic_tests,
+                             active_medications=sum(1 for med in medications if med.is_active),
+                             genetic_tests=len(genetic_records),
                              recent_vitamin_tests=recent_vitamin_tests,
-                             recent_blood_tests=recent_blood_tests,
+                             recent_blood_tests=recent_blood_test_count,
                              patients_with_protein_issues=patients_with_protein_issues[:10],
-                             patients_with_inactive_meds=patients_with_inactive_meds[:10],
+                             patients_with_inactive_meds=patients_with_inactive_meds,
                              patients_with_gyn_risks=patients_with_gyn_risks[:10],
-                             total_inactive_medications=sum(patient_ids_with_inactive.values()) if patient_ids_with_inactive else 0,
+                             total_inactive_medications=sum(len(records) for records in inactive_by_patient.values()),
                              patients_with_gyn_risk_count=len(patients_with_gyn_risks),
                              patients_with_protein_issues_count=len(patients_with_protein_issues))
     finally:
@@ -335,7 +654,7 @@ def edit_patient(patient_id):
             patient.email = request.form.get('email', '').strip() or None
             patient.phone = request.form.get('phone', '').strip() or None
             patient.address = request.form.get('address', '').strip() or None
-            patient.updated_at = datetime.utcnow()
+            patient.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             
             session.commit()
             flash('Patient updated successfully', 'success')
@@ -861,11 +1180,16 @@ def insights(patient_id):
 
 
 if __name__ == '__main__':
+    port = int(os.getenv("PORT", "5000"))
     print("\n" + "="*60)
     print("Health Database Application - Web Server")
     print("="*60)
     print("\nStarting server...")
-    print("Open your browser and navigate to: http://localhost:5000")
+    print(f"Open your browser and navigate to: http://localhost:{port}")
     print("\nPress Ctrl+C to stop the server\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(
+        debug=os.getenv("FLASK_DEBUG", "false").lower() == "true",
+        host="127.0.0.1",
+        port=port,
+    )
 

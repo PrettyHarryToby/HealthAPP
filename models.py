@@ -1,13 +1,21 @@
 """
 Database models for the Health Database Application
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, Float, Date, DateTime, Text, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from enum import Enum
 
 Base = declarative_base()
+
+
+def utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def utcdate():
+    return utcnow().date()
 
 
 class Patient(Base):
@@ -22,8 +30,8 @@ class Patient(Base):
     email = Column(String(100))
     phone = Column(String(20))
     address = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     
     # Relationships
     blood_parameters = relationship("BloodParameters", back_populates="patient", cascade="all, delete-orphan")
@@ -45,7 +53,7 @@ class BloodParameters(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    test_date = Column(Date, nullable=False, default=datetime.utcnow)
+    test_date = Column(Date, nullable=False, default=utcdate)
     
     # Complete Blood Count (CBC)
     hemoglobin = Column(Float)  # g/dL
@@ -99,7 +107,7 @@ class ReproductiveHealth(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    record_date = Column(Date, nullable=False, default=datetime.utcnow)
+    record_date = Column(Date, nullable=False, default=utcdate)
     
     # Menstrual Cycle
     last_menstrual_period = Column(Date)
@@ -140,7 +148,7 @@ class GynecologicalRiskIndicators(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    record_date = Column(Date, nullable=False, default=datetime.utcnow)
+    record_date = Column(Date, nullable=False, default=utcdate)
     
     # Family History
     family_history_ovarian_cancer = Column(Boolean, default=False)
@@ -224,7 +232,7 @@ class VitaminLevels(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    test_date = Column(Date, nullable=False, default=datetime.utcnow)
+    test_date = Column(Date, nullable=False, default=utcdate)
     
     # Fat-Soluble Vitamins
     vitamin_a = Column(Float)  # μg/dL
@@ -258,7 +266,7 @@ class MicronutrientLevels(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    test_date = Column(Date, nullable=False, default=datetime.utcnow)
+    test_date = Column(Date, nullable=False, default=utcdate)
     
     # Minerals
     calcium = Column(Float)  # mg/dL
@@ -317,7 +325,7 @@ class GeneticData(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    test_date = Column(Date, nullable=False, default=datetime.utcnow)
+    test_date = Column(Date, nullable=False, default=utcdate)
     test_type = Column(String(100))  # e.g., "BRCA1/2", "MTHFR", "Pharmacogenomics"
     test_provider = Column(String(200))
     
@@ -348,7 +356,7 @@ class PatientNeeds(Base):
     
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
-    record_date = Column(Date, nullable=False, default=datetime.utcnow)
+    record_date = Column(Date, nullable=False, default=utcdate)
     
     # Dietary Needs
     dietary_restrictions = Column(Text)  # Allergies, intolerances, preferences

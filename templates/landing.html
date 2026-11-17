@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Health Database · Private health workspace{% endblock %}
+
+{% block content %}
+<section class="hero-grid dashboard-section">
+    <div style="padding: clamp(8px, 3vw, 34px) 0;">
+        <p class="eyebrow"><i class="fas fa-heart-pulse"></i> A clearer view of care</p>
+        <h1 style="max-width: 760px; margin: 14px 0; font-size: clamp(34px, 7vw, 68px); line-height: 1.08; letter-spacing: -.09em;">
+            Your health records, thoughtfully organized.
+        </h1>
+        <p style="max-width: 640px; margin: 0 0 26px; color: var(--muted); font-size: 15px;">
+            A private place for patients to review their own health information and for care teams to manage clinical records.
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <a class="btn" href="{{ url_for('portal_login') }}"><i class="fas fa-user"></i> Patient sign in</a>
+            <a class="btn" href="{{ url_for('admin_login') }}" style="color: var(--text); border-color: var(--line); background: var(--surface-raised); box-shadow: none;"><i class="fas fa-user-doctor"></i> Staff sign in</a>
+            <a href="{{ url_for('portal_register') }}" style="align-self: center; color: var(--mint);">Create a patient account <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+    <aside class="card" style="margin: 0; padding: clamp(20px, 4vw, 32px);">
+        <p class="eyebrow">Built around privacy</p>
+        <div class="patient-card" style="margin-top: 18px;">
+            <span class="stat-card-icon" style="--accent: var(--mint);"><i class="fas fa-user-lock"></i></span>
+            <div class="patient-card-info"><h4>Patient-specific access</h4><p>Portal accounts can only view the linked patient chart.</p></div>
+        </div>
+        <div class="patient-card">
+            <span class="stat-card-icon" style="--accent: var(--cyan);"><i class="fas fa-envelope-circle-check"></i></span>
+            <div class="patient-card-info"><h4>Verified sign-up</h4><p>Patient ID, date of birth, and a one-time email code.</p></div>
+        </div>
+        <div class="patient-card" style="margin-bottom: 0;">
+            <span class="stat-card-icon" style="--accent: var(--violet);"><i class="fas fa-mobile-screen-button"></i></span>
+            <div class="patient-card-info"><h4>Designed for every screen</h4><p>Responsive layouts and a floating mobile navigation.</p></div>
+        </div>
+    </aside>
+</section>
+
+<section id="faq" class="dashboard-section">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+        <h2 class="dashboard-section-title"><i class="fas fa-circle-question"></i> Frequently asked questions</h2>
+        <a href="{{ url_for('faq') }}" style="color: var(--mint);">View help center <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="card faq-list">{% include "_faq_content.html" %}</div>
+</section>
+
+<section class="form-row dashboard-section">
+    <article id="terms" class="card legal-copy">
+        <p class="eyebrow"><i class="fas fa-file-contract"></i> Terms of use</p>
+        <h2>Use the workspace responsibly</h2>
+        <p>Use only the account and records you are authorized to access. Patient accounts are read-only; clinical decisions remain with qualified healthcare professionals.</p>
+        <a href="{{ url_for('terms') }}" style="color: var(--mint);">Read the terms <i class="fas fa-arrow-right"></i></a>
+    </article>
+    <article id="privacy" class="card legal-copy">
+        <p class="eyebrow"><i class="fas fa-user-shield"></i> Privacy</p>
+        <h2>Your information deserves care</h2>
+        <p>Clinical information is stored in the configured MongoDB database. Patient portal registration sends a verification code through the configured Brevo SMTP account.</p>
+        <a href="{{ url_for('privacy') }}" style="color: var(--mint);">Read the privacy notice <i class="fas fa-arrow-right"></i></a>
+    </article>
+</section>
+
+<footer class="site-footer">
+    <span>Health Database · Private health workspace</span>
+    <span><a href="{{ url_for('faq') }}">FAQ</a> · <a href="{{ url_for('terms') }}">Terms</a> · <a href="{{ url_for('privacy') }}">Privacy</a></span>
+    <span>Information only — not medical advice.</span>
+</footer>
+{% endblock %}

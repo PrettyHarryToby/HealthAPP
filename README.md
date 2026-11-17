@@ -12,16 +12,44 @@ A comprehensive Python-based health database application designed specifically f
 ## 🚀 Quick Start
 
 ```bash
-# 1. Install dependencies
+# 1. Configure MongoDB and admin credentials in .env
+#    Start a local MongoDB instance, or use a MongoDB Atlas connection string.
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Run the application
+# 3. Run the application
 python app_web.py
 
-# 3. Open browser to http://localhost:5000
+# 4. Open http://localhost:5000 and sign in with ADMIN_USERNAME / ADMIN_PASSWORD
 ```
 
+The web app stores clinical records in MongoDB. Copy `.env.example` to `.env` and set
+`MONGODB_URI`, `ADMIN_USERNAME`, and a unique `ADMIN_PASSWORD` before starting it.
+Existing SQLite records can be copied to MongoDB with `python migrate_sqlite_to_mongodb.py`;
+the source SQLite file is not modified. Do not commit `.env` or use placeholder credentials
+for a public deployment.
+
+The patient portal supports read-only, patient-specific access. Self-registration verifies
+the patient ID, date of birth, and registered email, then sends a one-time code through
+Brevo SMTP. Configure the Brevo SMTP login, SMTP key, and a verified sender in `SMTP_*`
+environment variables; never use a Brevo API key as the SMTP password.
+
+Render deployment is configured by [`render.yaml`](render.yaml) (mirrored in
+[`.render.yaml`](.render.yaml) as requested). Create a MongoDB Atlas database, then provide
+`MONGODB_URI`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and Brevo SMTP credentials as Render
+environment variables.
+
 ## Features
+
+### Patient and Staff Interfaces
+
+- **Clinical workspace** for staff: dashboard, patient management, and clinical data entry.
+- **Patient portal** at `/portal`: separate email/password sign-in with read-only access to
+  the signed-in patient's own record.
+- **Verified self-registration** matches patient ID, date of birth, and the email on file,
+  then verifies through a time-limited Brevo SMTP code.
+- **Role isolation** prevents patient accounts from opening staff or admin routes.
 
 ### Core Functionality
 
@@ -117,7 +145,8 @@ python app_web.py
    python app.py
    ```
 
-The application will automatically create a SQLite database file (`health_database.db`) on first run.
+The web application uses the MongoDB database configured by `MONGODB_URI`. The optional
+SQLite migration tool leaves `health_database.db` intact.
 
 ## Usage Guide
 
@@ -157,7 +186,7 @@ The Insights tab provides:
 
 ## Database Structure
 
-The application uses SQLite database with the following main tables:
+The web application stores records in MongoDB collections:
 
 - `patients`: Patient demographic information
 - `blood_parameters`: Blood test results (including protein levels)
@@ -168,6 +197,7 @@ The application uses SQLite database with the following main tables:
 - `genetic_data`: Genetic test results
 - `patient_needs`: Individual patient requirements
 - `gynecological_risk_indicators`: Risk assessment data
+- `admin_events`: Minimal administrator sign-in audit events
 
 ## Reference Ranges
 
@@ -189,16 +219,16 @@ The application uses standard medical reference ranges for vitamins and micronut
 ## Important Notes
 
 - **Data Privacy**: This application stores sensitive health information. Ensure proper security measures are in place
-- **Backup**: Regularly backup the `health_database.db` file
+- **Backup**: Back up the configured MongoDB database; the SQLite source file is retained only for migration
 - **Medical Disclaimer**: This application is a data management tool and does not provide medical advice. Always consult healthcare professionals for medical decisions
 - **Patient ID**: Patient IDs must be unique and are used as the primary identifier
 
 ## Troubleshooting
 
 ### Database Errors
-- If you encounter database errors, ensure you have write permissions in the application directory
-- Run `python migrate_database.py` to update database schema
-- Delete `health_database.db` to reset the database (WARNING: This will delete all data)
+- Check `MONGODB_URI` and `MONGODB_DATABASE` in `.env`, and confirm the MongoDB instance allows network access
+- Configure `ADMIN_USERNAME` and a unique `ADMIN_PASSWORD` before signing in
+- Use `python migrate_sqlite_to_mongodb.py` to import legacy SQLite records; do not delete the source file unless it has been backed up
 
 ### Date Format Errors
 - Always use YYYY-MM-DD format for dates
