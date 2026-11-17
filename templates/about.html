@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}About Avenara · Women's health workspace{% endblock %}
+
+{% block content %}
+<section class="hero-grid dashboard-section">
+    <div>
+        <p class="eyebrow"><i class="fas fa-compass"></i> About Avenara</p>
+        <h1 class="page-hero-title">A clearer place for health information.</h1>
+        <p class="page-hero-copy">Avenara brings clinical records and a patient portal together in one thoughtfully organized workspace.</p>
+        <a class="btn" href="{{ url_for('how_it_works') }}"><i class="fas fa-route"></i> See how it works</a>
+    </div>
+    <aside class="card brand-summary">
+        <span class="stat-card-icon" style="--accent: var(--mint);"><i class="fas fa-heart-pulse"></i></span>
+        <h2>Built around clearer care conversations</h2>
+        <p>Care teams can organize health information; verified patients can review the records linked to their own chart.</p>
+    </aside>
+</section>
+
+<section class="dashboard-section">
+    <h2 class="dashboard-section-title"><i class="fas fa-layer-group"></i> One workspace, two experiences</h2>
+    <div class="form-row">
+        <article class="card legal-copy">
+            <p class="eyebrow">For care teams</p>
+            <h2>Organize the clinical picture</h2>
+            <p>Staff can manage patient profiles and related records such as blood parameters, reproductive health, vitamins, medications, genetic information, and patient needs.</p>
+            <a href="{{ url_for('admin_login') }}" style="color: var(--mint);">Staff sign in <i class="fas fa-arrow-right"></i></a>
+        </article>
+        <article class="card legal-copy">
+            <p class="eyebrow">For patients</p>
+            <h2>Review your own information</h2>
+            <p>Patients can register after matching their chart details and verifying the email already on file. The portal is read-only and limited to the linked patient record.</p>
+            <a href="{{ url_for('portal_register') }}" style="color: var(--mint);">Create a patient account <i class="fas fa-arrow-right"></i></a>
+        </article>
+    </div>
+</section>
+
+<p class="muted-note">Avenara is an information and record-organizing tool, not a substitute for medical advice or emergency care.</p>
+{% endblock %}

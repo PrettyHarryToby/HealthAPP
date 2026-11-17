@@ -46,7 +46,8 @@ def require_admin_login():
     endpoint = request.endpoint or ""
     public_endpoints = {
         "index", "admin_login", "portal_login", "portal_register",
-        "portal_verify", "portal_logout", "faq", "terms", "privacy",
+        "portal_verify", "portal_logout", "about", "how_it_works",
+        "faq", "terms", "privacy",
         "health", "static",
     }
     if endpoint in public_endpoints:
@@ -432,6 +433,16 @@ def index():
 @app.route("/faq")
 def faq():
     return render_template("faq.html")
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/how-it-works")
+def how_it_works():
+    return render_template("how_it_works.html")
 
 
 @app.route("/terms")

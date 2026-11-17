@@ -104,11 +104,22 @@ class AdminAuthTests(unittest.TestCase):
             ("/faq", b"Frequently asked questions"),
             ("/terms", b"Terms of use"),
             ("/privacy", b"Privacy notice"),
+            ("/about", b"About Avenara"),
+            ("/how-it-works", b"How it works"),
         ):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.data)
+
+    def test_mobile_menu_contains_new_public_pages(self):
+        response = self.client.get("/")
+
+        self.assertIn(b'aria-controls="mobile-menu"', response.data)
+        self.assertIn(b'id="mobile-menu"', response.data)
+        self.assertIn(b'href="/about"', response.data)
+        self.assertIn(b'href="/how-it-works"', response.data)
+        self.assertIn(b"Patient sign in", response.data)
 
     def test_standalone_public_pages_offer_back_to_home(self):
         for path in ("/login", "/admin/login", "/portal/register", "/faq", "/terms", "/privacy"):

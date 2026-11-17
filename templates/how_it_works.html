@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}How it works · Avenara{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <p class="eyebrow"><i class="fas fa-route"></i> How it works</p>
+    <h1 class="page-hero-title">From a care-team chart to your patient portal.</h1>
+    <p class="page-hero-copy">A straightforward flow helps patients find the information their care team has linked to their record.</p>
+</section>
+
+<section class="process-grid dashboard-section" aria-label="Avenara account and portal steps">
+    <article class="card process-step">
+        <span class="process-number">01</span>
+        <p class="eyebrow">Care team</p>
+        <h2>Your chart is organized</h2>
+        <p>Authorized staff create and maintain the patient profile and its related health records.</p>
+    </article>
+    <article class="card process-step">
+        <span class="process-number">02</span>
+        <p class="eyebrow">Patient</p>
+        <h2>Register with matching details</h2>
+        <p>Enter your patient ID, date of birth, and the email address already associated with your chart.</p>
+    </article>
+    <article class="card process-step">
+        <span class="process-number">03</span>
+        <p class="eyebrow">Verification</p>
+        <h2>Confirm your email</h2>
+        <p>A one-time code is sent to the email on file. Enter it to complete registration and choose your password.</p>
+    </article>
+    <article class="card process-step">
+        <span class="process-number">04</span>
+        <p class="eyebrow">Your portal</p>
+        <h2>Review your linked record</h2>
+        <p>Sign in to view the information connected to your account. The patient portal does not allow chart edits.</p>
+    </article>
+</section>
+
+<section class="card process-note">
+    <i class="fas fa-circle-info"></i>
+    <p>If your details do not match or your email has changed, contact your clinic. For medical advice or urgent care, contact a qualified healthcare professional.</p>
+    <a class="btn" href="{{ url_for('portal_register') }}">Create a patient account</a>
+</section>
+{% endblock %}
