@@ -107,6 +107,18 @@ class AdminAuthTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.data)
 
+    def test_brand_mark_is_served_and_used_as_favicon(self):
+        homepage = self.client.get("/")
+        favicon = self.client.get("/static/avenara-mark.svg")
+
+        self.assertEqual(favicon.status_code, 200)
+        self.assertEqual(favicon.mimetype, "image/svg+xml")
+        self.assertIn(b"Avenara", homepage.data)
+        self.assertNotIn(b"Health Database", homepage.data)
+        self.assertIn(b'rel="icon" type="image/svg+xml"', homepage.data)
+        self.assertIn(b"avenara-mark.svg", homepage.data)
+        favicon.close()
+
     def test_patient_session_cannot_access_staff_routes(self):
         with self.client.session_transaction() as browser_session:
             browser_session["portal_patient_id"] = 42

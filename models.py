@@ -1,5 +1,5 @@
 """
-Database models for the Health Database Application
+Database models for Avenara
 """
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, Float, Date, DateTime, Text, ForeignKey, Boolean

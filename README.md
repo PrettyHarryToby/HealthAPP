@@ -1,6 +1,6 @@
-# Health Database Application for Female Patients
+# Avenara — Women's Health Workspace
 
-A comprehensive Python-based health database application designed specifically for tracking and managing clinical data for female patients. The system stores and analyzes blood parameters, reproductive health information, vitamin and micronutrient levels, medications, genetic data, and individual patient needs.
+Avenara is a Python-based health workspace for organizing women's health records. It stores and analyzes blood parameters, reproductive health information, vitamin and micronutrient levels, medications, genetic data, and individual patient needs.
 
 ## 📚 Documentation
 

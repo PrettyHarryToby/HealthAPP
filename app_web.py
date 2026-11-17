@@ -1,5 +1,5 @@
 """
-Flask Web Application for Health Database System
+Flask web application for Avenara
 Run this file to start the web server: python app_web.py
 Then open http://localhost:5000 in your browser
 """
@@ -114,7 +114,7 @@ def smtp_configured():
 
 def send_portal_verification(email, code):
     message = EmailMessage()
-    message["Subject"] = "Your Health Database verification code"
+    message["Subject"] = "Your Avenara verification code"
     message["From"] = os.environ["SMTP_FROM"]
     message["To"] = email
     message.set_content(
@@ -1182,7 +1182,7 @@ def insights(patient_id):
 if __name__ == '__main__':
     port = int(os.getenv("PORT", "5000"))
     print("\n" + "="*60)
-    print("Health Database Application - Web Server")
+    print("Avenara - Web Server")
     print("="*60)
     print("\nStarting server...")
     print(f"Open your browser and navigate to: http://localhost:{port}")

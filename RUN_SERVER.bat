@@ -1,9 +1,9 @@
 @echo off
-title Health Database Web Server
+title Avenara Web Server
 color 0A
 echo.
 echo ============================================================
-echo    Health Database Application - Web Server
+echo    Avenara - Web Server
 echo ============================================================
 echo.
 echo Starting Flask web server...

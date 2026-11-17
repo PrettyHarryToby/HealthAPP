@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#101522">
-    <title>{% block title %}Health Database{% endblock %}</title>
+    <title>{% block title %}Avenara{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='avenara-mark.svg') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -79,7 +80,7 @@
             font-weight: 700;
             letter-spacing: -.06em;
         }
-        header h1 i { color: var(--mint); }
+        .brand-mark { width: 40px; height: 40px; flex: 0 0 40px; filter: drop-shadow(0 0 14px rgba(101, 230, 193, .18)); }
         nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
         nav a {
             display: inline-flex;
@@ -349,7 +350,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-heartbeat"></i> Health Database <span class="eyebrow">/ private workspace</span></h1>
+            <h1><img class="brand-mark" src="{{ url_for('static', filename='avenara-mark.svg') }}" alt=""> Avenara <span class="eyebrow">/ private workspace</span></h1>
             <nav aria-label="Primary navigation">
                 {% if session.get('admin_authenticated') %}
                 <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}><i class="fas fa-chart-line"></i> Overview</a>

@@ -1,5 +1,5 @@
 """
-Example script demonstrating how to use the Health Database Application programmatically
+Example script demonstrating how to use Avenara programmatically
 This can be used for batch data import or automated analysis
 """
 from database import init_database, get_session, close_session
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # Initialize database
     init_database()
     
-    print("Health Database Application - Example Usage")
+    print("Avenara - Example Usage")
     print("="*50)
     
     # Run examples

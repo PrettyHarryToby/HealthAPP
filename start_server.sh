@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "========================================"
-echo "Health Database Application - Web Server"
+echo "Avenara - Web Server"
 echo "========================================"
 echo ""
 echo "Checking dependencies..."

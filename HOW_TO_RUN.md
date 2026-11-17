@@ -1,6 +1,6 @@
-# How to Run HealthAPP - Developer Guide
+# How to Run Avenara - Developer Guide
 
-This guide will help you set up, run, and develop the Health Database Application.
+This guide will help you set up, run, and develop Avenara.
 
 ## Table of Contents
 
@@ -123,7 +123,7 @@ python app_web.py
 **Output:**
 ```
 ============================================================
-Health Database Application - Web Server
+Avenara - Web Server
 ============================================================
 
 Starting server...

@@ -1,5 +1,5 @@
 """
-Main GUI Application for Health Database System
+Main GUI application for Avenara
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
@@ -16,7 +16,7 @@ import re
 class HealthDatabaseApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Health Database Application - Female Patients")
+        self.root.title("Avenara - Women's Health Workspace")
         self.root.geometry("1200x800")
         
         # Initialize database

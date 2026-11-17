@@ -2,7 +2,7 @@
 layout : none
 render_with_liquid: false
 ---
-# Developer Guide - Health Database Application
+# Developer Guide - Avenara
 
 ## Architecture Overview
 

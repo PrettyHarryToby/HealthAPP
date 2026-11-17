@@ -13,7 +13,7 @@ def check_port(port):
 
 def main():
     print("\n" + "="*60)
-    print("Health Database Application - Web Server")
+    print("Avenara - Web Server")
     print("="*60)
     print()
     
