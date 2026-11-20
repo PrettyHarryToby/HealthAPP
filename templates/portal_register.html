@@ -2,8 +2,57 @@
 
 {% block title %}Create patient portal account · Avenara{% endblock %}
 
+{% block extra_css %}
+<style>
+    .registration-card {
+        width: min(100%, 640px);
+        margin: clamp(16px, 4vh, 40px) auto !important;
+    }
+    .registration-form { display: grid; gap: 2px; }
+    .registration-form .form-group { min-width: 0; margin-bottom: 14px; }
+    .registration-form .form-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 14px;
+    }
+    .registration-form input {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        min-height: 50px;
+        border-radius: 13px;
+        font-size: 16px;
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .registration-form input[type="date"] {
+        min-height: 54px;
+        padding: 12px;
+        color-scheme: dark;
+        accent-color: var(--mint);
+        font-size: 16px;
+        background: linear-gradient(135deg, #151b29, #192235);
+    }
+    .registration-form input[type="date"]::-webkit-calendar-picker-indicator {
+        padding: 6px;
+        border-radius: 8px;
+        background-color: rgba(101, 230, 193, .12);
+        cursor: pointer;
+    }
+    .registration-form input[type="date"]:focus {
+        border-color: var(--mint);
+        box-shadow: 0 0 0 3px rgba(101, 230, 193, .14), 0 0 22px rgba(101, 230, 193, .08);
+    }
+    .registration-date-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; }
+    .registration-submit { width: 100%; min-height: 50px; justify-content: center; }
+    @media (max-width: 600px) {
+        .registration-form .form-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="card" style="max-width: 600px; margin: 4vh auto;">
+<section class="card registration-card">
     <p class="eyebrow"><i class="fas fa-user-plus"></i> Patient portal / verification required</p>
     <h2 style="margin: 8px 0 4px;">Create your account</h2>
     <p style="color: var(--muted); margin: 0 0 22px;">
@@ -12,7 +61,7 @@
     {% if not signup_enabled %}
     <div class="flash-message error">Email verification is not configured. Contact the clinic to access the portal.</div>
     {% endif %}
-    <form method="POST" autocomplete="on">
+    <form class="registration-form" method="POST" autocomplete="on">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="form-row">
             <div class="form-group">
@@ -21,7 +70,8 @@
             </div>
             <div class="form-group">
                 <label for="date_of_birth">Date of birth</label>
-                <input id="date_of_birth" type="date" name="date_of_birth" required>
+                <input id="date_of_birth" type="date" name="date_of_birth" autocomplete="bday" aria-describedby="date_of_birth_hint" required>
+                <small class="registration-date-hint" id="date_of_birth_hint">Use the date of birth on your clinic record.</small>
             </div>
         </div>
         <div class="form-group">
@@ -38,7 +88,7 @@
                 <input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password" minlength="12" required>
             </div>
         </div>
-        <button class="btn" type="submit" {% if not signup_enabled %}disabled{% endif %}><i class="fas fa-envelope-circle-check"></i> Send verification code</button>
+        <button class="btn registration-submit" type="submit" {% if not signup_enabled %}disabled{% endif %}><i class="fas fa-envelope-circle-check"></i> Send verification code</button>
     </form>
     <p style="margin: 18px 0 0; color: var(--muted);">Already registered? <a href="{{ url_for('portal_login') }}" style="color: var(--mint);">Sign in</a></p>
 </section>

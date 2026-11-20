@@ -112,6 +112,16 @@ class AdminAuthTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.data)
 
+    def test_patient_and_admin_sign_in_forms_include_loading_state(self):
+        for path in ("/login", "/admin/login"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b"data-loading-state", response.data)
+                self.assertIn(b"data-loading-submit", response.data)
+                self.assertIn(b"submit-spinner", response.data)
+                self.assertIn("Signing in…".encode(), response.data)
+
     def test_mobile_menu_contains_new_public_pages(self):
         response = self.client.get("/")
 

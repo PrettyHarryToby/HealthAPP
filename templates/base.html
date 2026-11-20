@@ -260,6 +260,36 @@
             transition: .2s ease;
         }
         .btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .submit-button-label, .submit-button-loading { align-items: center; gap: 9px; }
+        .submit-button-label { display: inline-flex; }
+        .submit-button-loading { display: none; }
+        .btn.is-loading { cursor: progress; opacity: .9; transform: none; filter: none; }
+        .btn.is-loading .submit-button-label { display: none; }
+        .btn.is-loading .submit-button-loading { display: inline-flex; }
+        .submit-spinner {
+            position: relative;
+            display: inline-block;
+            width: 21px;
+            height: 21px;
+            flex: 0 0 21px;
+            border: 2px solid rgba(17, 24, 39, .24);
+            border-top-color: #111827;
+            border-right-color: #111827;
+            border-radius: 50%;
+            animation: submit-spin .72s linear infinite;
+        }
+        .submit-spinner::after {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 9px;
+            height: 9px;
+            border: 1.5px solid rgba(17, 24, 39, .25);
+            border-bottom-color: #111827;
+            border-radius: 50%;
+            content: "";
+            animation: submit-spin .95s linear infinite reverse;
+        }
         .btn-back { margin-bottom: 16px; color: var(--muted); border-color: var(--line); background: transparent; box-shadow: none; }
         .btn-back:hover { color: var(--text); background: rgba(255, 255, 255, .055); }
         .btn-danger { color: #fff; background: #d84c68; }
@@ -301,6 +331,15 @@
             box-shadow: 0 0 0 3px rgba(155, 140, 255, .14);
         }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px; }
+        .auth-form .form-group { min-width: 0; }
+        .auth-form .form-group input {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            min-height: 50px;
+            border-radius: 13px;
+            font-size: 16px;
+        }
         .flash-messages { margin-bottom: 18px; }
         .flash-message { margin-bottom: 9px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-raised); }
         .flash-message.success { color: var(--mint); }
@@ -430,8 +469,10 @@
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+            .submit-spinner, .submit-spinner::after { animation: none !important; }
         }
         @keyframes mobile-menu-enter { from { opacity: 0; transform: translateY(-6px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes submit-spin { to { transform: rotate(360deg); } }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -533,6 +574,16 @@
     </nav>
     {% endif %}
     <script>
+        document.querySelectorAll("form[data-loading-state]").forEach((form) => {
+            form.addEventListener("submit", () => {
+                const button = form.querySelector("[data-loading-submit]");
+                if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+                button.disabled = true;
+                button.classList.add("is-loading");
+                button.setAttribute("aria-busy", "true");
+            });
+        });
+
         (() => {
             const toggle = document.querySelector(".mobile-menu-toggle");
             const menu = document.getElementById("mobile-menu");

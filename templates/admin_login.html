@@ -10,7 +10,7 @@
     {% if not login_configured %}
     <div class="flash-message error">Set <code>ADMIN_USERNAME</code> and <code>ADMIN_PASSWORD</code> in your environment before signing in.</div>
     {% endif %}
-    <form method="POST" autocomplete="on">
+    <form class="auth-form" method="POST" autocomplete="on" data-loading-state>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="form-group">
             <label for="username">Username</label>
@@ -20,7 +20,10 @@
             <label for="password">Password</label>
             <input id="password" type="password" name="password" autocomplete="current-password" required>
         </div>
-        <button class="btn" type="submit" {% if not login_configured %}disabled{% endif %}><i class="fas fa-lock"></i> Sign in</button>
+        <button class="btn" type="submit" data-loading-submit {% if not login_configured %}disabled{% endif %}>
+            <span class="submit-button-label"><i class="fas fa-lock" aria-hidden="true"></i> Sign in</span>
+            <span class="submit-button-loading"><span class="submit-spinner" aria-hidden="true"></span> Signing in…</span>
+        </button>
     </form>
 </section>
 {% endblock %}

@@ -7,7 +7,7 @@
     <p class="eyebrow"><i class="fas fa-user-shield"></i> Patient portal</p>
     <h2 style="margin: 8px 0 4px;">Welcome back</h2>
     <p style="color: var(--muted); margin: 0 0 22px;">Sign in to view your own health records.</p>
-    <form method="POST" autocomplete="on">
+    <form class="auth-form" method="POST" autocomplete="on" data-loading-state>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="form-group">
             <label for="email">Email</label>
@@ -17,7 +17,10 @@
             <label for="password">Password</label>
             <input id="password" type="password" name="password" autocomplete="current-password" required>
         </div>
-        <button class="btn" type="submit"><i class="fas fa-lock"></i> Sign in</button>
+        <button class="btn" type="submit" data-loading-submit>
+            <span class="submit-button-label"><i class="fas fa-lock" aria-hidden="true"></i> Sign in</span>
+            <span class="submit-button-loading"><span class="submit-spinner" aria-hidden="true"></span> Signing in…</span>
+        </button>
     </form>
     <p style="margin: 18px 0 0; color: var(--muted);">New here? <a href="{{ url_for('portal_register') }}" style="color: var(--mint);">Create a verified account</a></p>
 </section>
